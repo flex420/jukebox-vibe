@@ -5,6 +5,8 @@ import type { VoiceChannelInfo, Sound } from './types';
 export default function App() {
   const [sounds, setSounds] = useState<Sound[]>([]);
   const [total, setTotal] = useState<number>(0);
+  const [folders, setFolders] = useState<Array<{ key: string; name: string; count: number }>>([]);
+  const [activeFolder, setActiveFolder] = useState<string>('__all__');
   const [channels, setChannels] = useState<VoiceChannelInfo[]>([]);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string>('');
@@ -18,6 +20,7 @@ export default function App() {
         const [s, c] = await Promise.all([fetchSounds(), fetchChannels()]);
         setSounds(s.items);
         setTotal(s.total);
+        setFolders(s.folders);
         setChannels(c);
         if (c[0]) setSelected(`${c[0].guildId}:${c[0].channelId}`);
       } catch (e: any) {
@@ -30,6 +33,7 @@ export default function App() {
         const s = await fetchSounds(query);
         setSounds(s.items);
         setTotal(s.total);
+        setFolders(s.folders);
       } catch {}
     }, 10000);
     return () => clearInterval(interval);
@@ -41,13 +45,13 @@ export default function App() {
     return sounds.filter((s) => s.name.toLowerCase().includes(q));
   }, [sounds, query]);
 
-  async function handlePlay(name: string) {
+  async function handlePlay(name: string, rel?: string) {
     setError(null);
     if (!selected) return setError('Bitte einen Voice-Channel auswählen');
     const [guildId, channelId] = selected.split(':');
     try {
       setLoading(true);
-      await playSound(name, guildId, channelId, volume);
+      await playSound(name, guildId, channelId, volume, rel);
     } catch (e: any) {
       setError(e?.message || 'Play fehlgeschlagen');
     } finally {
@@ -101,11 +105,31 @@ export default function App() {
         </div>
       </section>
 
+      {folders.length > 0 && (
+        <nav className="tabs">
+          {folders.map((f) => (
+            <button
+              key={f.key}
+              className={`tab ${activeFolder === f.key ? 'active' : ''}`}
+              onClick={async () => {
+                setActiveFolder(f.key);
+                const resp = await fetchSounds(query, f.key);
+                setSounds(resp.items);
+                setTotal(resp.total);
+                setFolders(resp.folders);
+              }}
+            >
+              {f.name} ({f.count})
+            </button>
+          ))}
+        </nav>
+      )}
+
       {error && <div className="error">{error}</div>}
 
       <section className="grid">
         {filtered.map((s) => (
-          <button key={s.fileName} className="sound" onClick={() => handlePlay(s.name)} disabled={loading}>
+          <button key={`${s.fileName}-${s.name}`} className="sound" onClick={() => handlePlay(s.name, s.relativePath)} disabled={loading}>
             {s.name}
           </button>
         ))}
@@ -114,6 +138,10 @@ export default function App() {
       <div className="footer-info">Geladene Sounds: {total}</div>
     </div>
   );
+}
+
+function handlePlayWithPathFactory(play: (name: string, rel?: string) => Promise<void>) {
+  return (s: Sound & { relativePath?: string }) => play(s.name, s.relativePath);
 }
 
 

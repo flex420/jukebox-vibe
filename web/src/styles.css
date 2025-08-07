@@ -55,6 +55,16 @@ header p { opacity: .8; }
   font-size: 14px;
 }
 
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.tab {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(18,24,48,.6);
+  color: #e7e7ee;
+}
+.tab.active { background: linear-gradient(135deg, rgba(88,28,135,.9), rgba(59,130,246,.9)); color: #fff; border-color: transparent; }
+
 
 
 

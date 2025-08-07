@@ -190,17 +190,40 @@ app.get('/api/health', (_req: Request, res: Response) => {
 
 app.get('/api/sounds', (req: Request, res: Response) => {
   const q = String(req.query.q ?? '').toLowerCase();
-  const files = fs
-    .readdirSync(SOUNDS_DIR, { withFileTypes: true })
+
+  const rootEntries = fs.readdirSync(SOUNDS_DIR, { withFileTypes: true });
+  const rootFiles = rootEntries
     .filter((d) => d.isFile() && d.name.toLowerCase().endsWith('.mp3'))
-    .map((d) => d.name)
-    .sort((a, b) => a.localeCompare(b));
+    .map((d) => ({ fileName: d.name, name: path.parse(d.name).name, folder: '', relativePath: d.name }));
 
-  const items = files
-    .map((file) => ({ fileName: file, name: path.parse(file).name }))
-    .filter((s) => (q ? s.name.toLowerCase().includes(q) : true));
+  const folders: Array<{ key: string; name: string; count: number }> = [];
 
-  res.json({ items, total: files.length });
+  const subFolders = rootEntries.filter((d) => d.isDirectory());
+  const folderItems: Array<{ fileName: string; name: string; folder: string; relativePath: string }> = [];
+  for (const dirent of subFolders) {
+    const folderName = dirent.name;
+    const folderPath = path.join(SOUNDS_DIR, folderName);
+    const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+    const mp3s = entries.filter((e) => e.isFile() && e.name.toLowerCase().endsWith('.mp3'));
+    for (const f of mp3s) {
+      folderItems.push({
+        fileName: f.name,
+        name: path.parse(f.name).name,
+        folder: folderName,
+        relativePath: path.join(folderName, f.name)
+      });
+    }
+    folders.push({ key: folderName, name: folderName, count: mp3s.length });
+  }
+
+  const allItems = [...rootFiles, ...folderItems].sort((a, b) => a.name.localeCompare(b.name));
+  const filteredItems = allItems.filter((s) => (q ? s.name.toLowerCase().includes(q) : true));
+
+  const total = allItems.length;
+  const rootCount = rootFiles.length;
+  const foldersOut = [{ key: '__all__', name: 'Alle', count: total }, { key: '', name: 'Root', count: rootCount }, ...folders];
+
+  res.json({ items: filteredItems, total, folders: foldersOut });
 });
 
 app.get('/api/channels', (_req: Request, res: Response) => {
@@ -223,15 +246,20 @@ app.get('/api/channels', (_req: Request, res: Response) => {
 
 app.post('/api/play', async (req: Request, res: Response) => {
   try {
-    const { soundName, guildId, channelId, volume } = req.body as {
+    const { soundName, guildId, channelId, volume, folder, relativePath } = req.body as {
       soundName?: string;
       guildId?: string;
       channelId?: string;
       volume?: number; // 0..1
+      folder?: string; // optional subfolder key
+      relativePath?: string; // optional direct relative path
     };
     if (!soundName || !guildId || !channelId) return res.status(400).json({ error: 'soundName, guildId, channelId erforderlich' });
 
-    const filePath = path.join(SOUNDS_DIR, `${soundName}.mp3`);
+    let filePath: string;
+    if (relativePath) filePath = path.join(SOUNDS_DIR, relativePath);
+    else if (folder) filePath = path.join(SOUNDS_DIR, folder, `${soundName}.mp3`);
+    else filePath = path.join(SOUNDS_DIR, `${soundName}.mp3`);
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Sound nicht gefunden' });
 
     const guild = client.guilds.cache.get(guildId);
