@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/discord-soundboard
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/discordsoundbot-vib
 
 jobs:
   docker:
