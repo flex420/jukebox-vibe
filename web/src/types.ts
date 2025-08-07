@@ -3,6 +3,11 @@ export type Sound = {
   name: string;
 };
 
+export type SoundsResponse = {
+  items: Sound[];
+  total: number;
+};
+
 export type VoiceChannelInfo = {
   guildId: string;
   guildName: string;

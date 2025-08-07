@@ -12,6 +12,7 @@ import {
   NoSubscriberBehavior,
   getVoiceConnection,
   type VoiceConnection,
+  type AudioResource,
   generateDependencyReport,
   entersState,
   VoiceConnectionStatus
@@ -58,6 +59,8 @@ type GuildAudioState = {
   player: ReturnType<typeof createAudioPlayer>;
   guildId: string;
   channelId: string;
+  currentResource?: AudioResource;
+  currentVolume: number; // 0..1
 };
 const guildAudioState = new Map<string, GuildAudioState>();
 
@@ -197,7 +200,7 @@ app.get('/api/sounds', (req: Request, res: Response) => {
     .map((file) => ({ fileName: file, name: path.parse(file).name }))
     .filter((s) => (q ? s.name.toLowerCase().includes(q) : true));
 
-  res.json(items);
+  res.json({ items, total: files.length });
 });
 
 app.get('/api/channels', (_req: Request, res: Response) => {
@@ -227,7 +230,7 @@ app.post('/api/play', async (req: Request, res: Response) => {
       volume?: number; // 0..1
     };
     if (!soundName || !guildId || !channelId) return res.status(400).json({ error: 'soundName, guildId, channelId erforderlich' });
-    const safeVolume = typeof volume === 'number' && Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1;
+    const safeVolume = typeof volume === 'number' && Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : state?.currentVolume ?? 1;
 
     const filePath = path.join(SOUNDS_DIR, `${soundName}.mp3`);
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Sound nicht gefunden' });
@@ -250,7 +253,7 @@ app.post('/api/play', async (req: Request, res: Response) => {
       });
       const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
       connection.subscribe(player);
-      state = { connection, player, guildId, channelId };
+      state = { connection, player, guildId, channelId, currentVolume: 1 };
       guildAudioState.set(guildId, state);
 
       // Connection State Logs
@@ -297,7 +300,7 @@ app.post('/api/play', async (req: Request, res: Response) => {
         });
         const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
         connection.subscribe(player);
-        state = { connection, player, guildId, channelId };
+        state = { connection, player, guildId, channelId, currentVolume: 1 };
         guildAudioState.set(guildId, state);
 
         state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
@@ -323,6 +326,8 @@ app.post('/api/play', async (req: Request, res: Response) => {
     }
     state.player.stop();
     state.player.play(resource);
+    state.currentResource = resource;
+    state.currentVolume = safeVolume;
     console.log(`${new Date().toISOString()} | player.play() called for ${soundName}`);
     return res.json({ ok: true });
   } catch (err: any) {

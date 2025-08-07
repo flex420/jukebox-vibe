@@ -4,6 +4,7 @@ import type { VoiceChannelInfo, Sound } from './types';
 
 export default function App() {
   const [sounds, setSounds] = useState<Sound[]>([]);
+  const [total, setTotal] = useState<number>(0);
   const [channels, setChannels] = useState<VoiceChannelInfo[]>([]);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string>('');
@@ -15,7 +16,8 @@ export default function App() {
     (async () => {
       try {
         const [s, c] = await Promise.all([fetchSounds(), fetchChannels()]);
-        setSounds(s);
+        setSounds(s.items);
+        setTotal(s.total);
         setChannels(c);
         if (c[0]) setSelected(`${c[0].guildId}:${c[0].channelId}`);
       } catch (e: any) {
@@ -26,7 +28,8 @@ export default function App() {
     const interval = setInterval(async () => {
       try {
         const s = await fetchSounds(query);
-        setSounds(s);
+        setSounds(s.items);
+        setTotal(s.total);
       } catch {}
     }, 10000);
     return () => clearInterval(interval);
@@ -101,6 +104,7 @@ export default function App() {
         ))}
         {filtered.length === 0 && <div className="hint">Keine Sounds gefunden.</div>}
       </section>
+      <div className="footer-info">Geladene Sounds: {total}</div>
     </div>
   );
 }

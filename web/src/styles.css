@@ -49,6 +49,12 @@ header p { opacity: .8; }
 
 .hint { opacity: .7; padding: 24px 0; }
 
+.footer-info {
+  margin-top: 14px;
+  opacity: .8;
+  font-size: 14px;
+}
+
 
 
 

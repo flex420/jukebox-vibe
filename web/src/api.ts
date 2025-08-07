@@ -1,8 +1,8 @@
-import type { Sound, VoiceChannelInfo } from './types';
+import type { Sound, SoundsResponse, VoiceChannelInfo } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
-export async function fetchSounds(q?: string): Promise<Sound[]> {
+export async function fetchSounds(q?: string): Promise<SoundsResponse> {
   const url = new URL(`${API_BASE}/sounds`, window.location.origin);
   if (q) url.searchParams.set('q', q);
   const res = await fetch(url.toString());
