@@ -1,0 +1,16 @@
+﻿node_modules
+**/node_modules
+
+.git
+.github
+
+# Local data
+/data
+
+# Build outputs
+server/dist
+web/dist
+
+# env files
+.env
+.env.*

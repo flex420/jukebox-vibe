@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    container_name: discord-soundboard
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - ./data/sounds:/data/sounds
+    restart: unless-stopped
+
+
+
