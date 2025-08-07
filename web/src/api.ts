@@ -16,11 +16,11 @@ export async function fetchChannels(): Promise<VoiceChannelInfo[]> {
   return res.json();
 }
 
-export async function playSound(soundName: string, guildId: string, channelId: string): Promise<void> {
+export async function playSound(soundName: string, guildId: string, channelId: string, volume: number): Promise<void> {
   const res = await fetch(`${API_BASE}/play`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ soundName, guildId, channelId })
+    body: JSON.stringify({ soundName, guildId, channelId, volume })
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

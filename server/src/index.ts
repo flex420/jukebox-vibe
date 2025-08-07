@@ -174,12 +174,14 @@ app.get('/api/channels', (_req: Request, res: Response) => {
 
 app.post('/api/play', async (req: Request, res: Response) => {
   try {
-    const { soundName, guildId, channelId } = req.body as {
+    const { soundName, guildId, channelId, volume } = req.body as {
       soundName?: string;
       guildId?: string;
       channelId?: string;
+      volume?: number; // 0..1
     };
     if (!soundName || !guildId || !channelId) return res.status(400).json({ error: 'soundName, guildId, channelId erforderlich' });
+    const safeVolume = typeof volume === 'number' && Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1;
 
     const filePath = path.join(SOUNDS_DIR, `${soundName}.mp3`);
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Sound nicht gefunden' });
@@ -266,7 +268,11 @@ app.post('/api/play', async (req: Request, res: Response) => {
     }
 
     console.log(`${new Date().toISOString()} | createAudioResource: ${filePath}`);
-    const resource = createAudioResource(filePath);
+    const resource = createAudioResource(filePath, { inlineVolume: true });
+    if (resource.volume) {
+      resource.volume.setVolume(safeVolume);
+      console.log(`${new Date().toISOString()} | setVolume(${safeVolume}) for ${soundName}`);
+    }
     state.player.stop();
     state.player.play(resource);
     console.log(`${new Date().toISOString()} | player.play() called for ${soundName}`);

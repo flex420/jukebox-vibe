@@ -9,6 +9,7 @@ export default function App() {
   const [selected, setSelected] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [volume, setVolume] = useState<number>(1);
 
   useEffect(() => {
     (async () => {
@@ -43,7 +44,7 @@ export default function App() {
     const [guildId, channelId] = selected.split(':');
     try {
       setLoading(true);
-      await playSound(name, guildId, channelId);
+      await playSound(name, guildId, channelId, volume);
     } catch (e: any) {
       setError(e?.message || 'Play fehlgeschlagen');
     } finally {
@@ -59,19 +60,35 @@ export default function App() {
       </header>
 
       <section className="controls">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Nach Sounds suchen..."
-          aria-label="Suche"
-        />
-        <select value={selected} onChange={(e) => setSelected(e.target.value)} aria-label="Voice-Channel">
-          {channels.map((c) => (
-            <option key={`${c.guildId}:${c.channelId}`} value={`${c.guildId}:${c.channelId}`}>
-              {c.guildName} – {c.channelName}
-            </option>
-          ))}
-        </select>
+        <div className="control search">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Nach Sounds suchen..."
+            aria-label="Suche"
+          />
+        </div>
+        <div className="control select">
+          <select value={selected} onChange={(e) => setSelected(e.target.value)} aria-label="Voice-Channel">
+            {channels.map((c) => (
+              <option key={`${c.guildId}:${c.channelId}`} value={`${c.guildId}:${c.channelId}`}>
+                {c.guildName} – {c.channelName}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="control volume">
+          <label>🔊 {Math.round(volume * 100)}%</label>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volume}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
+            aria-label="Lautstärke"
+          />
+        </div>
       </section>
 
       {error && <div className="error">{error}</div>}
