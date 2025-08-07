@@ -53,7 +53,12 @@ const client = new Client({
   partials: [Partials.Channel]
 });
 
-type GuildAudioState = { connection: VoiceConnection; player: ReturnType<typeof createAudioPlayer> };
+type GuildAudioState = {
+  connection: VoiceConnection;
+  player: ReturnType<typeof createAudioPlayer>;
+  guildId: string;
+  channelId: string;
+};
 const guildAudioState = new Map<string, GuildAudioState>();
 
 async function ensureConnectionReady(connection: VoiceConnection, channelId: string, guildId: string, guild: any): Promise<VoiceConnection> {
@@ -88,6 +93,47 @@ async function ensureConnectionReady(connection: VoiceConnection, channelId: str
     console.error(`${new Date().toISOString()} | VoiceConnection not ready after fresh join`, e3);
   });
   return newConn;
+}
+
+function attachVoiceLifecycle(state: GuildAudioState, guild: any) {
+  const { connection } = state;
+  connection.on('stateChange', async (oldS: any, newS: any) => {
+    console.log(`${new Date().toISOString()} | VoiceConnection: ${oldS.status} -> ${newS.status}`);
+    try {
+      if (newS.status === VoiceConnectionStatus.Disconnected) {
+        // Versuche, die Verbindung kurzfristig neu auszuhandeln, sonst rejoin
+        try {
+          await Promise.race([
+            entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+            entersState(connection, VoiceConnectionStatus.Connecting, 5_000)
+          ]);
+        } catch {
+          connection.rejoin({ channelId: state.channelId, selfDeaf: false, selfMute: false });
+        }
+      } else if (newS.status === VoiceConnectionStatus.Destroyed) {
+        // Komplett neu beitreten
+        const newConn = joinVoiceChannel({
+          channelId: state.channelId,
+          guildId: state.guildId,
+          adapterCreator: guild.voiceAdapterCreator as any,
+          selfMute: false,
+          selfDeaf: false
+        });
+        state.connection = newConn;
+        newConn.subscribe(state.player);
+        attachVoiceLifecycle(state, guild);
+      } else if (newS.status === VoiceConnectionStatus.Connecting || newS.status === VoiceConnectionStatus.Signalling) {
+        try {
+          await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+        } catch (e) {
+          console.warn(`${new Date().toISOString()} | Voice not ready from ${newS.status}, rejoin`, e);
+          connection.rejoin({ channelId: state.channelId, selfDeaf: false, selfMute: false });
+        }
+      }
+    } catch (e) {
+      console.error(`${new Date().toISOString()} | Voice lifecycle handler error`, e);
+    }
+  });
 }
 
 client.once(Events.ClientReady, () => {
@@ -204,7 +250,7 @@ app.post('/api/play', async (req: Request, res: Response) => {
       });
       const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
       connection.subscribe(player);
-      state = { connection, player };
+      state = { connection, player, guildId, channelId };
       guildAudioState.set(guildId, state);
 
       // Connection State Logs
@@ -219,6 +265,7 @@ app.post('/api/play', async (req: Request, res: Response) => {
       });
 
       state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
+      attachVoiceLifecycle(state, guild);
 
       // Stage-Channel Entstummung anfordern/setzen
       try {
@@ -250,10 +297,11 @@ app.post('/api/play', async (req: Request, res: Response) => {
         });
         const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
         connection.subscribe(player);
-        state = { connection, player };
+        state = { connection, player, guildId, channelId };
         guildAudioState.set(guildId, state);
 
         state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
+        attachVoiceLifecycle(state, guild);
 
         connection.on('stateChange', (o, n) => {
           console.log(`${new Date().toISOString()} | VoiceConnection: ${o.status} -> ${n.status}`);
