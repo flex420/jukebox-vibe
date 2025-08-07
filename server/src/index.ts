@@ -12,7 +12,9 @@ import {
   NoSubscriberBehavior,
   getVoiceConnection,
   type VoiceConnection,
-  generateDependencyReport
+  generateDependencyReport,
+  entersState,
+  VoiceConnectionStatus
 } from '@discordjs/voice';
 import sodium from 'libsodium-wrappers';
 import nacl from 'tweetnacl';
@@ -160,12 +162,45 @@ app.post('/api/play', async (req: Request, res: Response) => {
       const connection = joinVoiceChannel({
         channelId,
         guildId,
-        adapterCreator: guild.voiceAdapterCreator as any
+        adapterCreator: guild.voiceAdapterCreator as any,
+        selfMute: false,
+        selfDeaf: false
       });
       const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
       connection.subscribe(player);
       state = { connection, player };
       guildAudioState.set(guildId, state);
+
+      // Connection State Logs
+      connection.on('stateChange', (oldState, newState) => {
+        console.log(`${new Date().toISOString()} | VoiceConnection: ${oldState.status} -> ${newState.status}`);
+      });
+      player.on('stateChange', (oldState, newState) => {
+        console.log(`${new Date().toISOString()} | AudioPlayer: ${oldState.status} -> ${newState.status}`);
+      });
+      player.on('error', (err) => {
+        console.error(`${new Date().toISOString()} | AudioPlayer error:`, err);
+      });
+
+      try {
+        await entersState(connection, VoiceConnectionStatus.Ready, 10_000);
+        console.log(`${new Date().toISOString()} | VoiceConnection ready`);
+      } catch (e) {
+        console.error(`${new Date().toISOString()} | VoiceConnection not ready within timeout`, e);
+      }
+
+      // Stage-Channel Entstummung anfordern/setzen
+      try {
+        const me = guild.members.me;
+        if (me && (channel.type === ChannelType.GuildStageVoice)) {
+          if ((me.voice as any)?.suppress) {
+            await me.voice.setSuppressed(false).catch(() => me.voice.setRequestToSpeak(true));
+            console.log(`${new Date().toISOString()} | StageVoice: suppression versucht zu deaktivieren`);
+          }
+        }
+      } catch (e) {
+        console.warn(`${new Date().toISOString()} | StageVoice unsuppress/requestToSpeak fehlgeschlagen`, e);
+      }
 
       state.player.on(AudioPlayerStatus.Idle, () => {
         // optional: Verbindung bestehen lassen oder nach Timeout trennen
@@ -178,18 +213,32 @@ app.post('/api/play', async (req: Request, res: Response) => {
         const connection = joinVoiceChannel({
           channelId,
           guildId,
-          adapterCreator: guild.voiceAdapterCreator as any
+          adapterCreator: guild.voiceAdapterCreator as any,
+          selfMute: false,
+          selfDeaf: false
         });
         const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
         connection.subscribe(player);
         state = { connection, player };
         guildAudioState.set(guildId, state);
+
+        connection.on('stateChange', (o, n) => {
+          console.log(`${new Date().toISOString()} | VoiceConnection: ${o.status} -> ${n.status}`);
+        });
+        player.on('stateChange', (o, n) => {
+          console.log(`${new Date().toISOString()} | AudioPlayer: ${o.status} -> ${n.status}`);
+        });
+        player.on('error', (err) => {
+          console.error(`${new Date().toISOString()} | AudioPlayer error:`, err);
+        });
       }
     }
 
+    console.log(`${new Date().toISOString()} | createAudioResource: ${filePath}`);
     const resource = createAudioResource(filePath);
     state.player.stop();
     state.player.play(resource);
+    console.log(`${new Date().toISOString()} | player.play() called for ${soundName}`);
     return res.json({ ok: true });
   } catch (err: any) {
     console.error('Play-Fehler:', err);
