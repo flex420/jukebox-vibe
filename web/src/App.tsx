@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { fetchChannels, fetchSounds, playSound } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive } from './api';
 import type { VoiceChannelInfo, Sound } from './types';
 
 export default function App() {
@@ -88,7 +88,14 @@ export default function App() {
             max={1}
             step={0.01}
             value={volume}
-            onChange={(e) => setVolume(parseFloat(e.target.value))}
+            onChange={async (e) => {
+              const v = parseFloat(e.target.value);
+              setVolume(v);
+              if (selected) {
+                const [guildId] = selected.split(':');
+                try { await setVolumeLive(guildId, v); } catch {}
+              }
+            }}
             aria-label="Lautstärke"
           />
         </div>

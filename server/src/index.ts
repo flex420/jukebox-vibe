@@ -339,6 +339,30 @@ app.post('/api/play', async (req: Request, res: Response) => {
   }
 });
 
+// Lautstärke zur Laufzeit ändern (0..1). Wirken sofort auf aktuelle Resource, sonst als Default für nächste Wiedergabe.
+app.post('/api/volume', (req: Request, res: Response) => {
+  try {
+    const { guildId, volume } = req.body as { guildId?: string; volume?: number };
+    if (!guildId || typeof volume !== 'number' || !Number.isFinite(volume)) {
+      return res.status(400).json({ error: 'guildId und volume (0..1) erforderlich' });
+    }
+    const safeVolume = Math.max(0, Math.min(1, volume));
+    const state = guildAudioState.get(guildId);
+    if (!state) {
+      return res.status(404).json({ error: 'Kein Voice-State für diese Guild' });
+    }
+    state.currentVolume = safeVolume;
+    if (state.currentResource?.volume) {
+      state.currentResource.volume.setVolume(safeVolume);
+      console.log(`${new Date().toISOString()} | live setVolume(${safeVolume}) guild=${guildId}`);
+    }
+    return res.json({ ok: true, volume: safeVolume });
+  } catch (e: any) {
+    console.error('Volume-Fehler:', e);
+    return res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });
+  }
+});
+
 // Static Frontend ausliefern (Vite build)
 const webDistPath = path.resolve(__dirname, '../../web/dist');
 if (fs.existsSync(webDistPath)) {

@@ -28,6 +28,18 @@ export async function playSound(soundName: string, guildId: string, channelId: s
   }
 }
 
+export async function setVolumeLive(guildId: string, volume: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/volume`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ guildId, volume })
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error || 'Volume ändern fehlgeschlagen');
+  }
+}
+
 
 
 
