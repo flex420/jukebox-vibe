@@ -56,6 +56,40 @@ const client = new Client({
 type GuildAudioState = { connection: VoiceConnection; player: ReturnType<typeof createAudioPlayer> };
 const guildAudioState = new Map<string, GuildAudioState>();
 
+async function ensureConnectionReady(connection: VoiceConnection, channelId: string, guildId: string, guild: any): Promise<VoiceConnection> {
+  try {
+    await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+    console.log(`${new Date().toISOString()} | VoiceConnection ready`);
+    return connection;
+  } catch (e) {
+    console.warn(`${new Date().toISOString()} | VoiceConnection not ready, trying rejoin...`, e);
+  }
+
+  try {
+    connection.rejoin({ channelId, selfDeaf: false, selfMute: false });
+    await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+    console.log(`${new Date().toISOString()} | VoiceConnection ready after rejoin`);
+    return connection;
+  } catch (e2) {
+    console.error(`${new Date().toISOString()} | VoiceConnection still not ready after rejoin`, e2);
+  }
+
+  try {
+    connection.destroy();
+  } catch {}
+  const newConn = joinVoiceChannel({
+    channelId,
+    guildId,
+    adapterCreator: guild.voiceAdapterCreator as any,
+    selfMute: false,
+    selfDeaf: false
+  });
+  await entersState(newConn, VoiceConnectionStatus.Ready, 15_000).catch((e3) => {
+    console.error(`${new Date().toISOString()} | VoiceConnection not ready after fresh join`, e3);
+  });
+  return newConn;
+}
+
 client.once(Events.ClientReady, () => {
   console.log(`Bot eingeloggt als ${client.user?.tag}`);
 });
@@ -182,12 +216,7 @@ app.post('/api/play', async (req: Request, res: Response) => {
         console.error(`${new Date().toISOString()} | AudioPlayer error:`, err);
       });
 
-      try {
-        await entersState(connection, VoiceConnectionStatus.Ready, 10_000);
-        console.log(`${new Date().toISOString()} | VoiceConnection ready`);
-      } catch (e) {
-        console.error(`${new Date().toISOString()} | VoiceConnection not ready within timeout`, e);
-      }
+      state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
 
       // Stage-Channel Entstummung anfordern/setzen
       try {
@@ -221,6 +250,8 @@ app.post('/api/play', async (req: Request, res: Response) => {
         connection.subscribe(player);
         state = { connection, player };
         guildAudioState.set(guildId, state);
+
+        state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
 
         connection.on('stateChange', (o, n) => {
           console.log(`${new Date().toISOString()} | VoiceConnection: ${o.status} -> ${n.status}`);
