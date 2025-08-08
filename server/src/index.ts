@@ -332,7 +332,7 @@ app.get('/api/sounds', (req: Request, res: Response) => {
   const recentCount = Math.min(10, total);
   const foldersOut = [
     { key: '__all__', name: 'Alle', count: total },
-    { key: '__recent__', name: 'Neu', count: recentCount },
+    { key: '__recent__', name: 'Neu (10)', count: recentCount },
     ...folders
   ];
   // isRecent-Flag für UI (Top 5 der neuesten)
