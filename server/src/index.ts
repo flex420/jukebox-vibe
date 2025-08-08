@@ -33,6 +33,7 @@ const PORT = Number(process.env.PORT ?? 8080);
 const SOUNDS_DIR = process.env.SOUNDS_DIR ?? '/data/sounds';
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN ?? '';
 const ADMIN_PWD = process.env.ADMIN_PWD ?? '';
+const YTDLP_COOKIES_FILE = process.env.YTDLP_COOKIES_FILE ?? '';
 const ALLOWED_GUILD_IDS = (process.env.ALLOWED_GUILD_IDS ?? '')
   .split(',')
   .map((s) => s.trim())
@@ -44,6 +45,27 @@ if (!DISCORD_TOKEN) {
 }
 
 fs.mkdirSync(SOUNDS_DIR, { recursive: true });
+
+function buildYtDlpArgs(url: string, mode: 'stream' | 'download', outPath?: string): string[] {
+  const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Mobile/15E148 Safari/604.1';
+  const base = [
+    '--no-playlist',
+    '--no-warnings',
+    '--geo-bypass',
+    '--user-agent', ua,
+    '--referer', 'https://www.youtube.com/',
+    '--extractor-args', 'youtube:player_client=android',
+  ];
+  if (YTDLP_COOKIES_FILE) {
+    base.push('--cookies', YTDLP_COOKIES_FILE);
+  }
+  if (mode === 'stream') {
+    return ['-f', 'bestaudio/best', ...base, '-o', '-', url];
+  }
+  // download
+  const out = outPath ?? path.join(SOUNDS_DIR, `media-${Date.now()}.mp3`);
+  return ['-x', '--audio-format', 'mp3', '--audio-quality', '0', ...base, '-o', out, url];
+}
 
 // Persistente Lautstärke pro Guild speichern
 type PersistedState = { volumes: Record<string, number> };
@@ -628,7 +650,7 @@ app.post('/api/play-url', async (req: Request, res: Response) => {
     if (download === true) {
       const safeBase = `media-${Date.now()}`;
       const outPath = path.join(SOUNDS_DIR, `${safeBase}.mp3`);
-      const yt = child_process.spawn('yt-dlp', ['--no-playlist', '-x', '--audio-format', 'mp3', '--audio-quality', '0', '--no-warnings', '--geo-bypass', '-o', outPath, url]);
+      const yt = child_process.spawn('yt-dlp', buildYtDlpArgs(url, 'download', outPath));
       yt.stderr.on('data', (d) => console.log(`[yt-dlp] ${String(d)}`));
       yt.on('error', (err) => console.error('yt-dlp spawn error:', err));
       yt.on('close', async (code) => {
@@ -655,7 +677,7 @@ app.post('/api/play-url', async (req: Request, res: Response) => {
     }
 
     // Streaming: yt-dlp + ffmpeg Transcoding (stabiler als ytdl-core)
-    const ytArgs = ['-f', 'bestaudio/best', '--no-playlist', '--no-warnings', '--geo-bypass', '-o', '-', url];
+    const ytArgs = buildYtDlpArgs(url, 'stream');
     const yt = child_process.spawn('yt-dlp', ytArgs);
     yt.stderr.on('data', (d) => console.log(`[yt-dlp] ${String(d)}`));
     yt.on('error', (err) => console.error('yt-dlp spawn error:', err));
