@@ -204,7 +204,8 @@ header p { opacity: .8; }
 .control.volume label { font-weight: 700; opacity: .9; }
 
 /* Volume Slider - Base Styles */
-.control.volume input[type="range"] {
+.control.volume input[type="range"],
+.volume-slider {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
@@ -217,11 +218,15 @@ header p { opacity: .8; }
 }
 
 /* Tracks transparent halten, damit der Hintergrund-Gradient sichtbar ist */
-.control.volume input[type="range"]::-webkit-slider-runnable-track { height: 8px; background: transparent; border-radius: 5px; }
-.control.volume input[type="range"]::-moz-range-track { height: 8px; background: transparent; border-radius: 5px; }
-.control.volume input[type="range"]::-moz-range-progress { background: transparent; }
+.control.volume input[type="range"]::-webkit-slider-runnable-track,
+.volume-slider::-webkit-slider-runnable-track { height: 8px; background: transparent; border-radius: 5px; }
+.control.volume input[type="range"]::-moz-range-track,
+.volume-slider::-moz-range-track { height: 8px; background: transparent; border-radius: 5px; }
+.control.volume input[type="range"]::-moz-range-progress,
+.volume-slider::-moz-range-progress { background: transparent; }
 
-.control.volume input[type="range"]::-webkit-slider-thumb {
+.control.volume input[type="range"]::-webkit-slider-thumb,
+.volume-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 20px;
@@ -232,7 +237,8 @@ header p { opacity: .8; }
   box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 
-.control.volume input[type="range"]::-moz-range-thumb {
+.control.volume input[type="range"]::-moz-range-thumb,
+.volume-slider::-moz-range-thumb {
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -242,7 +248,8 @@ header p { opacity: .8; }
 }
 
 /* Volume Slider - Dark Theme */
-[data-theme="dark"] .control.volume input[type="range"] {
+[data-theme="dark"] .control.volume input[type="range"],
+[data-theme="dark"] .volume-slider {
   --range-accent: #0a84ff;
   --range-track-bg: #2c2c2c;
   accent-color: #0a84ff;
@@ -250,16 +257,19 @@ header p { opacity: .8; }
   height: 8px;
 }
 
-[data-theme="dark"] .control.volume input[type="range"]::-webkit-slider-thumb {
+[data-theme="dark"] .control.volume input[type="range"]::-webkit-slider-thumb,
+[data-theme="dark"] .volume-slider::-webkit-slider-thumb {
   background: #0a84ff;
 }
 
-[data-theme="dark"] .control.volume input[type="range"]::-moz-range-thumb {
+[data-theme="dark"] .control.volume input[type="range"]::-moz-range-thumb,
+[data-theme="dark"] .volume-slider::-moz-range-thumb {
   background: #0a84ff;
 }
 
 /* Volume Slider - Light Theme */
-[data-theme="light"] .control.volume input[type="range"] {
+[data-theme="light"] .control.volume input[type="range"],
+[data-theme="light"] .volume-slider {
   --range-accent: #007aff;
   --range-track-bg: #e8e8ed;
   accent-color: #007aff;
@@ -267,16 +277,19 @@ header p { opacity: .8; }
   height: 8px;
 }
 
-[data-theme="light"] .control.volume input[type="range"]::-webkit-slider-thumb {
+[data-theme="light"] .control.volume input[type="range"]::-webkit-slider-thumb,
+[data-theme="light"] .volume-slider::-webkit-slider-thumb {
   background: #007aff;
 }
 
-[data-theme="light"] .control.volume input[type="range"]::-moz-range-thumb {
+[data-theme="light"] .control.volume input[type="range"]::-moz-range-thumb,
+[data-theme="light"] .volume-slider::-moz-range-thumb {
   background: #007aff;
 }
 
 /* Volume Slider - Rainbow Theme */
-[data-theme="rainbow"] .control.volume input[type="range"] {
+[data-theme="rainbow"] .control.volume input[type="range"],
+[data-theme="rainbow"] .volume-slider {
   --range-accent: #23a6d5;
   --range-track-bg: rgba(44,44,44,.8);
   accent-color: #23a6d5;
@@ -285,11 +298,13 @@ header p { opacity: .8; }
   border: 1px solid #3a3a3c;
 }
 
-[data-theme="rainbow"] .control.volume input[type="range"]::-webkit-slider-thumb {
+[data-theme="rainbow"] .control.volume input[type="range"]::-webkit-slider-thumb,
+[data-theme="rainbow"] .volume-slider::-webkit-slider-thumb {
   background: linear-gradient(45deg, #23a6d5, #e73c7e);
 }
 
-[data-theme="rainbow"] .control.volume input[type="range"]::-moz-range-thumb {
+[data-theme="rainbow"] .control.volume input[type="range"]::-moz-range-thumb,
+[data-theme="rainbow"] .volume-slider::-moz-range-thumb {
   background: linear-gradient(45deg, #23a6d5, #e73c7e);
 }
 

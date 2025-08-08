@@ -169,7 +169,7 @@ export default function App() {
             <div className="flex items-center space-x-3">
               <span className="material-icons" style={{color:'var(--text-secondary)'}}>volume_up</span>
               <input
-                className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                className="volume-slider w-full h-2 rounded-lg appearance-none cursor-pointer"
                 type="range" min={0} max={1} step={0.01}
                 value={volume}
                 onChange={async (e)=>{
