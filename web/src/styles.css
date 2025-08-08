@@ -53,9 +53,13 @@ body {
 [data-theme="rainbow"] .control input,
 [data-theme="rainbow"] .control select,
 [data-theme="rainbow"] .sound {
-  background: linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.08));
-  border-image: linear-gradient(90deg, #ff6384, #36a2eb, #ffce56, #4bc0c0, #9966ff) 1;
-  border-width: 1px; border-style: solid;
+  /* Abgerundete Rainbow-Rahmen wie Buttons */
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.08)) padding-box,
+    linear-gradient(90deg, #ff6384, #36a2eb, #ffce56, #4bc0c0, #9966ff) border-box;
+  background-clip: padding-box, border-box;
 }
 [data-theme="rainbow"] .sound,
 [data-theme="rainbow"] .select-trigger,
