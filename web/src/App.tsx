@@ -230,9 +230,11 @@ export default function App() {
 
       {!isAdmin && (
         <section className="controls glass row3">
-          <div className="control" style={{ display: 'flex', gap: 8 }}>
+          <div className="control" style={{ width: 280 }}>
             <input type="password" value={adminPwd} onChange={(e) => setAdminPwd(e.target.value)} placeholder="Admin Passwort" />
-            <button type="button" className="tab" onClick={async () => {
+          </div>
+          <div className="control" style={{ width: 120 }}>
+            <button type="button" className="tab" style={{ width: '100%' }} onClick={async () => {
               const ok = await adminLogin(adminPwd);
               if (ok) { setIsAdmin(true); setAdminPwd(''); }
               else alert('Login fehlgeschlagen');
