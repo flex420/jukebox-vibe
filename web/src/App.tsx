@@ -36,7 +36,8 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const s = await fetchSounds(query, activeFolder);
+        const folderParam = activeFolder === '__favs__' ? '__all__' : activeFolder;
+        const s = await fetchSounds(query, folderParam);
         setSounds(s.items);
         setTotal(s.total);
         setFolders(s.folders);
@@ -68,6 +69,8 @@ export default function App() {
     if (!q) return sounds;
     return sounds.filter((s) => s.name.toLowerCase().includes(q));
   }, [sounds, query]);
+
+  const favCount = useMemo(() => Object.values(favs).filter(Boolean).length, [favs]);
 
   async function handlePlay(name: string, rel?: string) {
     setError(null);
@@ -139,7 +142,7 @@ export default function App() {
             type="button"
             onClick={() => setActiveFolder('__favs__')}
           >
-            Favoriten
+            Favoriten ({favCount})
           </button>
           {folders.map((f) => (
             <button
