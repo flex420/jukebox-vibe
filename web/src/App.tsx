@@ -100,6 +100,23 @@ export default function App() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Live-Update für totalPlays Counter
+  useEffect(() => {
+    const updateTotalPlays = async () => {
+      try {
+        const h = await fetch('/api/health').then(r => r.json()).catch(() => null);
+        if (h && typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
+      } catch {}
+    };
+    
+    // Sofort beim Start laden
+    updateTotalPlays();
+    
+    // Alle 5 Sekunden aktualisieren
+    const interval = setInterval(updateTotalPlays, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     (async () => {
       if (selected) {
@@ -166,11 +183,11 @@ export default function App() {
           </div>
           <div className="flex items-center space-x-8">
             <div className="text-center">
-              <p className="text-lg text-gray-400">Geladene Sounds</p>
+              <p className="text-lg text-gray-400">Sounds</p>
               <p className="text-2xl font-bold">{total}</p>
             </div>
             <div className="text-center">
-              <p className="text-lg text-gray-400">Insgesamt abgespielt</p>
+              <p className="text-lg text-gray-400">Played</p>
               <p className="text-2xl font-bold">{totalPlays}</p>
             </div>
             <div className="flex items-center space-x-4">
