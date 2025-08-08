@@ -41,9 +41,10 @@ body {
 /* Stitch utility classes (Light) */
 [data-theme="light"] .control-panel { background-color: #ffffff; border: 1px solid #e8e8ed; }
 [data-theme="light"] .tag-btn { padding: 8px 16px; border-radius: 9999px; font-size: 0.875rem; font-weight: 500; background: #e8e8ed; color: #6e6e73; border: 1px solid transparent; transition: all .2s ease; cursor: pointer; }
+[data-theme="light"] .input-field.pl-10 { padding-left: 2.5rem; }
 [data-theme="light"] .tag-btn:hover { background: #dcdce1; color: #1d1d1f; }
 [data-theme="light"] .tag-btn.active { background: #007aff; color: #fff; font-weight: 600; }
-[data-theme="light"] .input-field { width: 100%; background: #f2f2f6; border: 1px solid #dcdce1; border-radius: .5rem; padding: .5rem 1rem; color: #1d1d1f; outline: none; }
+[data-theme="light"] .input-field { width: 100%; background: #f2f2f6; border: 1px solid #dcdce1; border-radius: .5rem; padding: .5rem 1rem .5rem 2.5rem; color: #1d1d1f; outline: none; }
 [data-theme="light"] .input-field:focus { box-shadow: 0 0 0 3px rgba(0,122,255,.25); border-color: transparent; }
 [data-theme="light"] .sound-btn { background: #ffffff; border: 1px solid #e8e8ed; box-shadow: 0 1px 2px rgba(0,0,0,.05); transition: all .2s ease; }
 [data-theme="light"] .sound-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.1); border-color: #007aff; }
@@ -138,7 +139,7 @@ header p { opacity: .8; }
 }
 .control input, .control select {
   width: 100%;
-  padding: 12px 14px;
+  padding: 12px 14px 12px 40px; /* Platz für linkes Icon */
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.25);
   background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
@@ -154,7 +155,7 @@ header p { opacity: .8; }
 .select-trigger {
   width: 100%;
   text-align: left;
-  padding: 12px 14px;
+  padding: 12px 14px 12px 40px; /* Platz für linkes Icon */
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.32);
   background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.12));
