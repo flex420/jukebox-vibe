@@ -606,7 +606,19 @@ app.post('/api/play-url', async (req: Request, res: Response) => {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return res.status(404).json({ error: 'Guild nicht gefunden' });
     let state = guildAudioState.get(guildId);
-    if (!state) return res.status(400).json({ error: 'Bitte zuerst einen Sound abspielen, um die Verbindung herzustellen' });
+    if (!state) {
+      const channel = guild.channels.cache.get(channelId);
+      if (!channel || (channel.type !== ChannelType.GuildVoice && channel.type !== ChannelType.GuildStageVoice)) {
+        return res.status(400).json({ error: 'Ungültiger Voice-Channel' });
+      }
+      const connection = joinVoiceChannel({ channelId, guildId, adapterCreator: guild.voiceAdapterCreator as any, selfDeaf: false, selfMute: false });
+      const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
+      connection.subscribe(player);
+      state = { connection, player, guildId, channelId, currentVolume: getPersistedVolume(guildId) };
+      guildAudioState.set(guildId, state);
+      state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
+      attachVoiceLifecycle(state, guild);
+    }
 
     const useVolume = typeof volume === 'number' ? Math.max(0, Math.min(1, volume)) : state.currentVolume ?? 1;
 

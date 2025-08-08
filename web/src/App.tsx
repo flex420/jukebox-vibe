@@ -133,7 +133,7 @@ export default function App() {
         )}
       </header>
 
-      <section className="controls glass">
+      <section className="controls glass row1">
         <div className="control search">
           <input
             value={query}
@@ -173,8 +173,23 @@ export default function App() {
             <option value="rainbow">Rainbow Chaos</option>
           </select>
         </div>
+      </section>
+
+      <section className="controls glass row2">
         <div className="control" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
-          <input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="YouTube/Instagram/MP3 URL..." />
+          <input
+            value={mediaUrl}
+            onChange={(e) => setMediaUrl(e.target.value)}
+            onKeyDown={async (e) => {
+              if (e.key === 'Enter') {
+                if (!selected) { setError('Bitte Voice-Channel wählen'); return; }
+                const [guildId, channelId] = selected.split(':');
+                try { await playUrl(mediaUrl, guildId, channelId, volume); }
+                catch (err: any) { setError(err?.message || 'Play-URL fehlgeschlagen'); }
+              }
+            }}
+            placeholder="YouTube/Instagram/MP3 URL..."
+          />
           <button type="button" className="tab" onClick={async () => {
             if (!selected) { setError('Bitte Voice-Channel wählen'); return; }
             const [guildId, channelId] = selected.split(':');
@@ -182,7 +197,10 @@ export default function App() {
             catch (e: any) { setError(e?.message || 'Play-URL fehlgeschlagen'); }
           }}>▶ Abspielen</button>
         </div>
-        {!isAdmin && (
+      </section>
+
+      {!isAdmin && (
+        <section className="controls glass row3">
           <div className="control" style={{ display: 'flex', gap: 8 }}>
             <input type="password" value={adminPwd} onChange={(e) => setAdminPwd(e.target.value)} placeholder="Admin Passwort" />
             <button type="button" className="tab" onClick={async () => {
@@ -191,8 +209,8 @@ export default function App() {
               else alert('Login fehlgeschlagen');
             }}>Login</button>
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* Admin Toolbar */}
       {isAdmin && (

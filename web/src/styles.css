@@ -88,7 +88,10 @@ header p { opacity: .8; }
 }
 .badge { align-self: flex-start; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); padding: 6px 10px; border-radius: 999px; font-size: 13px; }
 
-.controls { display: grid; grid-template-columns: 1fr minmax(240px, 300px) 220px 180px minmax(260px, 1fr); gap: 12px; align-items: center; margin-bottom: 18px; }
+.controls { display: grid; grid-template-columns: 1fr minmax(240px, 320px) 260px 200px; gap: 12px; align-items: center; margin-bottom: 12px; }
+.controls.row2 { grid-template-columns: minmax(400px, 1fr); }
+.controls.row3 { grid-template-columns: 1fr; }
+.controls.glass { padding: 18px; }
 .controls.glass {
   backdrop-filter: saturate(140%) blur(20px);
   background: linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
