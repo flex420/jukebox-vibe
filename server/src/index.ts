@@ -14,6 +14,7 @@ import {
   getVoiceConnection,
   type VoiceConnection,
   type AudioResource,
+  StreamType,
   generateDependencyReport,
   entersState,
   VoiceConnectionStatus
@@ -623,26 +624,13 @@ app.post('/api/play-url', async (req: Request, res: Response) => {
     const useVolume = typeof volume === 'number' ? Math.max(0, Math.min(1, volume)) : state.currentVolume ?? 1;
 
     // Audio-Stream besorgen
-    let stream: any;
-    if (ytdl.validateURL(url)) {
-      // Nutze ytdl-core, fallback auf yt-dlp bei HTTP Fehlern (410/403 etc.)
-      try {
-        stream = ytdl(url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 });
-        stream.on('error', (e: any) => { throw e; });
-      } catch (e) {
-        console.warn('ytdl-core fehlgeschlagen, versuche yt-dlp:', e);
-        const yt = child_process.spawn('yt-dlp', ['-f', 'bestaudio', '-o', '-', url]);
-        yt.on('error', (err) => console.error('yt-dlp spawn error:', err));
-        stream = yt.stdout;
-      }
-    } else {
-      // Fallback via yt-dlp, benötigt binary im Image/Host
-      // wir nutzen stdout mit ffmpeg pipe
-      const yt = child_process.spawn('yt-dlp', ['-f', 'bestaudio', '-o', '-', url]);
-      stream = yt.stdout;
-    }
+    // Einheitlicher Weg: yt-dlp + ffmpeg Transcoding (stabiler als ytdl-core)
+    const yt = child_process.spawn('yt-dlp', ['-f', 'bestaudio', '--no-playlist', '--quiet', '--no-warnings', '-o', '-', url]);
+    yt.on('error', (err) => console.error('yt-dlp spawn error:', err));
+    const ff = child_process.spawn('ffmpeg', ['-i', 'pipe:0', '-f', 's16le', '-ar', '48000', '-ac', '2', 'pipe:1']);
+    yt.stdout.pipe(ff.stdin);
 
-    const resource = createAudioResource(stream as any, { inlineVolume: true });
+    const resource = createAudioResource(ff.stdout as any, { inlineVolume: true, inputType: StreamType.Raw });
     if (resource.volume) resource.volume.setVolume(useVolume);
     state.player.stop();
     state.player.play(resource);
