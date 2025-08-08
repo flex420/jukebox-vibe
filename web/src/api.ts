@@ -5,6 +5,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 export async function fetchSounds(q?: string, folderKey?: string): Promise<SoundsResponse> {
   const url = new URL(`${API_BASE}/sounds`, window.location.origin);
   if (q) url.searchParams.set('q', q);
+  if (folderKey) url.searchParams.set('folder', folderKey);
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error('Fehler beim Laden der Sounds');
   return res.json();

@@ -190,6 +190,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 
 app.get('/api/sounds', (req: Request, res: Response) => {
   const q = String(req.query.q ?? '').toLowerCase();
+  const folderFilter = typeof req.query.folder === 'string' ? (req.query.folder as string) : '__all__';
 
   const rootEntries = fs.readdirSync(SOUNDS_DIR, { withFileTypes: true });
   const rootFiles = rootEntries
@@ -217,7 +218,11 @@ app.get('/api/sounds', (req: Request, res: Response) => {
   }
 
   const allItems = [...rootFiles, ...folderItems].sort((a, b) => a.name.localeCompare(b.name));
-  const filteredItems = allItems.filter((s) => (q ? s.name.toLowerCase().includes(q) : true));
+  let itemsByFolder = allItems;
+  if (folderFilter !== '__all__') {
+    itemsByFolder = allItems.filter((it) => (folderFilter === '' ? it.folder === '' : it.folder === folderFilter));
+  }
+  const filteredItems = itemsByFolder.filter((s) => (q ? s.name.toLowerCase().includes(q) : true));
 
   const total = allItems.length;
   const rootCount = rootFiles.length;

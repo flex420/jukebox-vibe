@@ -30,14 +30,14 @@ export default function App() {
 
     const interval = setInterval(async () => {
       try {
-        const s = await fetchSounds(query);
+        const s = await fetchSounds(query, activeFolder);
         setSounds(s.items);
         setTotal(s.total);
         setFolders(s.folders);
       } catch {}
     }, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeFolder]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
