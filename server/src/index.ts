@@ -225,8 +225,7 @@ app.get('/api/sounds', (req: Request, res: Response) => {
   const filteredItems = itemsByFolder.filter((s) => (q ? s.name.toLowerCase().includes(q) : true));
 
   const total = allItems.length;
-  const rootCount = rootFiles.length;
-  const foldersOut = [{ key: '__all__', name: 'Alle', count: total }, { key: '', name: 'Root', count: rootCount }, ...folders];
+  const foldersOut = [{ key: '__all__', name: 'Alle', count: total }, ...folders];
 
   res.json({ items: filteredItems, total, folders: foldersOut });
 });

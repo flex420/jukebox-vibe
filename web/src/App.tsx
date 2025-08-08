@@ -132,6 +132,15 @@ export default function App() {
 
       {folders.length > 0 && (
         <nav className="tabs">
+          {/* Favoriten Tab */}
+          <button
+            key="__favs__"
+            className={`tab ${activeFolder === '__favs__' ? 'active' : ''}`}
+            type="button"
+            onClick={() => setActiveFolder('__favs__')}
+          >
+            Favoriten
+          </button>
           {folders.map((f) => (
             <button
               key={f.key}
@@ -154,7 +163,7 @@ export default function App() {
       {error && <div className="error">{error}</div>}
 
       <section className="grid">
-        {filtered.map((s) => {
+        {(activeFolder === '__favs__' ? filtered.filter((s) => !!favs[s.relativePath ?? s.fileName]) : filtered).map((s) => {
           const key = `${s.relativePath ?? s.fileName}`;
           const isFav = !!favs[key];
           return (
