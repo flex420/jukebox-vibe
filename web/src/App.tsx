@@ -144,7 +144,18 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="container mx-auto">
+      <div className="container mx-auto" data-theme={theme}>
+        {/* Floating Broccoli for 420 Theme */}
+        {theme === '420' && (
+          <>
+            <div className="broccoli">🥦</div>
+            <div className="broccoli">🥦</div>
+            <div className="broccoli">🥦</div>
+            <div className="broccoli">🥦</div>
+            <div className="broccoli">🥦</div>
+            <div className="broccoli">🥦</div>
+          </>
+        )}
         <header className="flex items-center justify-between p-6">
           <div className="flex items-center">
             <div>
