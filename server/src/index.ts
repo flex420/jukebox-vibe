@@ -128,6 +128,47 @@ async function playFilePath(guildId: string, channelId: string, filePath: string
   state.currentVolume = useVolume;
 }
 
+async function handleCommand(message: Message, content: string) {
+  const reply = async (txt: string) => {
+    try { await message.author.send?.(txt); } catch { await message.reply(txt); }
+  };
+  const parts = content.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+
+  if (cmd === '?help') {
+    await reply(
+      'Available commands\n' +
+      '?help - zeigt diese Hilfe\n' +
+      '?list - listet alle mp3-Dateien\n' +
+      '?restart - startet den Container neu (Bestätigung erforderlich)\n'
+    );
+    return;
+  }
+  if (cmd === '?list') {
+    const files = fs.readdirSync(SOUNDS_DIR).filter(f => f.toLowerCase().endsWith('.mp3'));
+    await reply(files.length ? files.join('\n') : 'Keine Dateien gefunden.');
+    return;
+  }
+  if (cmd === '?restart') {
+    await reply('Möchten Sie den Bot neu starten? Antworte mit Y oder N innerhalb 30s.');
+    const collector = message.channel?.createMessageCollector?.({ filter: (m: any) => m.author?.id === message.author?.id, time: 30_000, max: 1 });
+    if (!collector) return;
+    collector.on('collect', async (m: any) => {
+      const v = (m.content || '').trim().toLowerCase();
+      if (v === 'y' || v === 'yes' || v === 'ja') {
+        await reply('Neustart wird ausgeführt...');
+        try { await fetch('http://127.0.0.1:9001/_restart').catch(() => {}); } catch {}
+        // fallback: Prozess beenden; Orchestrator startet neu
+        setTimeout(() => process.exit(0), 500);
+      } else {
+        await reply('Abgebrochen.');
+      }
+    });
+    return;
+  }
+  await reply('Unbekannter Command. Nutze ?help.');
+}
+
 async function ensureConnectionReady(connection: VoiceConnection, channelId: string, guildId: string, guild: any): Promise<VoiceConnection> {
   try {
     await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
@@ -210,6 +251,13 @@ client.once(Events.ClientReady, () => {
 client.on(Events.MessageCreate, async (message: Message) => {
   try {
     if (message.author?.bot) return;
+    // Commands überall annehmen
+    const content = (message.content || '').trim();
+    if (content.startsWith('?')) {
+      await handleCommand(message, content);
+      return;
+    }
+    // Dateiuploads nur per DM
     if (!message.channel?.isDMBased?.()) return;
     if (message.attachments.size === 0) return;
 
@@ -234,7 +282,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
       if (!res.ok) throw new Error(`Download fehlgeschlagen: ${attachment.url}`);
       const arrayBuffer = await res.arrayBuffer();
       fs.writeFileSync(targetPath, Buffer.from(arrayBuffer));
-      await message.reply(`Sound gespeichert: ${path.basename(targetPath)}`);
+      await message.author.send?.(`Sound gespeichert: ${path.basename(targetPath)}`);
     }
   } catch (err) {
     console.error('Fehler bei DM-Upload:', err);

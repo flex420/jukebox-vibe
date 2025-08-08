@@ -145,6 +145,17 @@ export default function App() {
             const [guildId] = selected.split(':');
             try { await fetch(`/api/stop?guildId=${encodeURIComponent(guildId)}`, { method:'POST' }); } catch {}
           }}>Panik</button>
+          <button type="button" className="tab" onClick={async () => {
+            try {
+              const res = await fetch('/api/sounds');
+              const data = await res.json();
+              const items = data?.items || [];
+              if (!items.length || !selected) return;
+              const rnd = items[Math.floor(Math.random() * items.length)];
+              const [guildId, channelId] = selected.split(':');
+              await playSound(rnd.name, guildId, channelId, volume, rnd.relativePath);
+            } catch {}
+          }}>Random</button>
         </div>
         {isAdmin && (
           <div className="badge">Admin-Modus</div>
