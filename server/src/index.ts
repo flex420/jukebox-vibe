@@ -587,7 +587,7 @@ app.listen(PORT, () => {
 // Unterstützt: YouTube (ytdl-core), generische URLs (yt-dlp), direkte mp3 (Download und Ablage)
 app.post('/api/play-url', async (req: Request, res: Response) => {
   try {
-    const { url, guildId, channelId, volume } = req.body as { url?: string; guildId?: string; channelId?: string; volume?: number };
+    const { url, guildId, channelId, volume, download } = req.body as { url?: string; guildId?: string; channelId?: string; volume?: number; download?: boolean };
     if (!url || !guildId || !channelId) return res.status(400).json({ error: 'url, guildId, channelId erforderlich' });
 
     // MP3 direkt?
@@ -624,10 +624,44 @@ app.post('/api/play-url', async (req: Request, res: Response) => {
     const useVolume = typeof volume === 'number' ? Math.max(0, Math.min(1, volume)) : state.currentVolume ?? 1;
 
     // Audio-Stream besorgen
-    // Einheitlicher Weg: yt-dlp + ffmpeg Transcoding (stabiler als ytdl-core)
-    const yt = child_process.spawn('yt-dlp', ['-f', 'bestaudio', '--no-playlist', '--quiet', '--no-warnings', '-o', '-', url]);
+    // Download in Datei (mp3) falls gewünscht
+    if (download === true) {
+      const safeBase = `media-${Date.now()}`;
+      const outPath = path.join(SOUNDS_DIR, `${safeBase}.mp3`);
+      const yt = child_process.spawn('yt-dlp', ['--no-playlist', '-x', '--audio-format', 'mp3', '--audio-quality', '0', '--no-warnings', '--geo-bypass', '-o', outPath, url]);
+      yt.stderr.on('data', (d) => console.log(`[yt-dlp] ${String(d)}`));
+      yt.on('error', (err) => console.error('yt-dlp spawn error:', err));
+      yt.on('close', async (code) => {
+        if (code !== 0) {
+          console.error('yt-dlp exited with code', code);
+          try { res.status(500).json({ error: 'Download fehlgeschlagen' }); } catch {}
+          return;
+        }
+        // Datei abspielen
+        try {
+          const resource = createAudioResource(outPath, { inlineVolume: true });
+          if (resource.volume) resource.volume.setVolume(useVolume);
+          state!.player.stop();
+          state!.player.play(resource);
+          state!.currentResource = resource;
+          state!.currentVolume = useVolume;
+          try { res.json({ ok: true, saved: path.basename(outPath) }); } catch {}
+        } catch (e) {
+          console.error('play downloaded file error:', e);
+          try { res.status(500).json({ error: 'Abspielen der Datei fehlgeschlagen' }); } catch {}
+        }
+      });
+      return;
+    }
+
+    // Streaming: yt-dlp + ffmpeg Transcoding (stabiler als ytdl-core)
+    const ytArgs = ['-f', 'bestaudio/best', '--no-playlist', '--no-warnings', '--geo-bypass', '-o', '-', url];
+    const yt = child_process.spawn('yt-dlp', ytArgs);
+    yt.stderr.on('data', (d) => console.log(`[yt-dlp] ${String(d)}`));
     yt.on('error', (err) => console.error('yt-dlp spawn error:', err));
-    const ff = child_process.spawn('ffmpeg', ['-i', 'pipe:0', '-f', 's16le', '-ar', '48000', '-ac', '2', 'pipe:1']);
+    const ffArgs = ['-loglevel', 'error', '-i', 'pipe:0', '-f', 's16le', '-ar', '48000', '-ac', '2', 'pipe:1'];
+    const ff = child_process.spawn('ffmpeg', ffArgs);
+    ff.stderr.on('data', (d) => console.log(`[ffmpeg] ${String(d)}`));
     yt.stdout.pipe(ff.stdin);
 
     const resource = createAudioResource(ff.stdout as any, { inlineVolume: true, inputType: StreamType.Raw });

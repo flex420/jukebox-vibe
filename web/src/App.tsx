@@ -22,6 +22,7 @@ export default function App() {
   const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
   const [clock, setClock] = useState<string>(() => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }).format(new Date()));
   const [mediaUrl, setMediaUrl] = useState<string>('');
+  const [mediaDownload, setMediaDownload] = useState<boolean>(false);
 
   useEffect(() => {
     (async () => {
@@ -184,7 +185,7 @@ export default function App() {
               if (e.key === 'Enter') {
                 if (!selected) { setError('Bitte Voice-Channel wählen'); return; }
                 const [guildId, channelId] = selected.split(':');
-                try { await playUrl(mediaUrl, guildId, channelId, volume); }
+                try { await playUrl(mediaUrl, guildId, channelId, volume, mediaDownload); }
                 catch (err: any) { setError(err?.message || 'Play-URL fehlgeschlagen'); }
               }
             }}
@@ -193,10 +194,14 @@ export default function App() {
           <button type="button" className="tab" onClick={async () => {
             if (!selected) { setError('Bitte Voice-Channel wählen'); return; }
             const [guildId, channelId] = selected.split(':');
-            try { await playUrl(mediaUrl, guildId, channelId, volume); }
+            try { await playUrl(mediaUrl, guildId, channelId, volume, mediaDownload); }
             catch (e: any) { setError(e?.message || 'Play-URL fehlgeschlagen'); }
           }}>▶ Abspielen</button>
         </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input type="checkbox" checked={mediaDownload} onChange={(e) => setMediaDownload(e.target.checked)} />
+          Download speichern
+        </label>
       </section>
 
       {!isAdmin && (
