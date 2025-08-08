@@ -22,6 +22,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [adminPwd, setAdminPwd] = useState<string>('');
   const [selectedSet, setSelectedSet] = useState<Record<string, boolean>>({});
+  const [showBroccoli, setShowBroccoli] = useState<boolean>(false);
   const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
   const [clock, setClock] = useState<string>(() => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }).format(new Date()));
   const [totalPlays, setTotalPlays] = useState<number>(0);
@@ -146,7 +147,7 @@ export default function App() {
     <ErrorBoundary>
       <div className="container mx-auto" data-theme={theme}>
         {/* Floating Broccoli for 420 Theme */}
-        {theme === '420' && (
+        {theme === '420' && showBroccoli && (
           <>
             <div className="broccoli">🥦</div>
             <div className="broccoli">🥦</div>
@@ -228,6 +229,20 @@ export default function App() {
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>palette</span>
                 <span className="material-icons absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{color:'var(--text-secondary)'}}>unfold_more</span>
               </div>
+              {theme === '420' && (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="broccoli-toggle"
+                    checked={showBroccoli}
+                    onChange={(e) => setShowBroccoli(e.target.checked)}
+                    className="w-4 h-4 accent-green-500"
+                  />
+                  <label htmlFor="broccoli-toggle" className="text-sm font-medium" style={{color:'var(--text-secondary)'}}>
+                    Brokkoli?
+                  </label>
+                </div>
+              )}
             </div>
           </div>
           <div className="mt-6" style={{borderTop:'1px solid var(--border-color)', paddingTop:'1.5rem'}}>
