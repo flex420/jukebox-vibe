@@ -9,7 +9,7 @@ Ein modernes, feature-reiches Discord Soundboard mit Web-Frontend, Discord-Bot u
 ## ✨ Features
 
 ### 🎮 **Kern-Funktionen**
-- **Web-Frontend** mit modernem UI und 4 Themes (Dark, Rainbow, 420)
+- **Web-Frontend** mit modernem UI und 3 Themes (Dark, Rainbow, 420)
 - **Discord-Bot** für Voice-Channel Integration
 - **Sound-Management** mit Ordner-Unterstützung
 - **Live-Uhrzeit** (Berlin Timezone)
@@ -17,7 +17,7 @@ Ein modernes, feature-reiches Discord Soundboard mit Web-Frontend, Discord-Bot u
 - **Favoriten-System** mit Cookie-Persistenz
 
 ### 🎨 **UI/UX Features**
-- **4 Themes**: Dark, Rainbow, 420 (Cannabis/Trippy)
+- **3 Themes**: Dark, Rainbow, 420 (Cannabis/Trippy)
 - **Responsive Design** für Desktop & Mobile
 - **Glassmorphism-Effekte** mit Backdrop-Blur
 - **Animierte Hintergründe** (Rainbow & 420 Theme)
@@ -172,13 +172,14 @@ POST /api/admin/sounds/rename  # Sound umbenennen
 ### **Docker Compose (Empfohlen)**
 ```yaml
 # docker-compose.yml
-version: '3.8'
 services:
-  jukebox:
+  app:
     build: .
+    container_name: discord-soundboard
     ports:
       - "8199:8080"
-    env_file: .env
+    env_file:
+      - .env
     volumes:
       - ./data/sounds:/data/sounds
     restart: unless-stopped
@@ -289,10 +290,10 @@ docker build --target development -t jukebox-vibe:dev .
 docker compose logs -f
 
 # Container-spezifische Logs
-docker compose logs -f jukebox
+docker compose logs -f app
 
 # Letzte 100 Zeilen
-docker compose logs --tail=100 jukebox
+docker compose logs --tail=100 app
 ```
 
 ## 🤝 Contributing
