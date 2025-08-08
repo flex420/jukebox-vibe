@@ -196,7 +196,31 @@ header p { opacity: .8; }
 
 .control.volume { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
 .control.volume label { font-weight: 700; opacity: .9; }
-.control.volume input[type="range"] { accent-color: #60a5fa; }
+
+/* Volume Slider - Dark Theme */
+[data-theme="dark"] .control.volume input[type="range"] { 
+  accent-color: #0a84ff; 
+  background: #2c2c2c;
+  border-radius: 5px;
+  height: 8px;
+}
+
+/* Volume Slider - Light Theme */
+[data-theme="light"] .control.volume input[type="range"] { 
+  accent-color: #007aff; 
+  background: #e8e8ed;
+  border-radius: 5px;
+  height: 8px;
+}
+
+/* Volume Slider - Rainbow Theme */
+[data-theme="rainbow"] .control.volume input[type="range"] { 
+  accent-color: #23a6d5; 
+  background: rgba(44,44,44,.8);
+  border-radius: 5px;
+  height: 8px;
+  border: 1px solid #3a3a3c;
+}
 
 .error { background: rgba(255, 99, 99, .12); color: #ffd1d1; border: 1px solid rgba(255, 99, 99, .3); padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; }
 

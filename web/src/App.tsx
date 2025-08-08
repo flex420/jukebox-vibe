@@ -182,7 +182,6 @@ export default function App() {
             <div className="flex items-center space-x-3 lg:col-span-2">
               <div className="relative flex-grow">
                 <select className="input-field appearance-none pl-10" value={theme} onChange={(e)=>setTheme(e.target.value)}>
-                  <option value="system">System</option>
                   <option value="dark">Dark</option>
                   <option value="rainbow">Rainbow Chaos</option>
                   <option value="light">Light</option>
