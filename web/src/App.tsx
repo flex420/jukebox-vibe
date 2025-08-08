@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename } from './api';
 import type { VoiceChannelInfo, Sound } from './types';
 import { getCookie, setCookie } from './cookies';
 
@@ -16,6 +16,10 @@ export default function App() {
   const [volume, setVolume] = useState<number>(1);
   const [favs, setFavs] = useState<Record<string, boolean>>({});
   const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'dark');
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [adminPwd, setAdminPwd] = useState<string>('');
+  const [selectedSet, setSelectedSet] = useState<Record<string, boolean>>({});
+  const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
 
   useEffect(() => {
     (async () => {
@@ -31,6 +35,7 @@ export default function App() {
       } catch (e: any) {
         setError(e?.message || 'Fehler beim Laden der Channels');
       }
+      try { setIsAdmin(await adminStatus()); } catch {}
     })();
   }, []);
 
@@ -109,6 +114,9 @@ export default function App() {
         <h1>Discord Soundboard</h1>
         <p>Schicke dem Bot per privater Nachricht eine .mp3 — neue Sounds erscheinen automatisch.</p>
         <div className="badge">Geladene Sounds: {total}</div>
+        {isAdmin && (
+          <div className="badge">Admin-Modus</div>
+        )}
       </header>
 
       <section className="controls glass">
@@ -151,7 +159,52 @@ export default function App() {
             <option value="rainbow">Rainbow Chaos</option>
           </select>
         </div>
+        {!isAdmin && (
+          <div className="control" style={{ display: 'flex', gap: 8 }}>
+            <input type="password" value={adminPwd} onChange={(e) => setAdminPwd(e.target.value)} placeholder="Admin Passwort" />
+            <button type="button" className="tab" onClick={async () => {
+              const ok = await adminLogin(adminPwd);
+              if (ok) { setIsAdmin(true); setAdminPwd(''); }
+              else alert('Login fehlgeschlagen');
+            }}>Login</button>
+          </div>
+        )}
       </section>
+
+      {/* Admin Toolbar */}
+      {isAdmin && (
+        <section className="controls glass" style={{ marginTop: -8 }}>
+          <div className="control" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button type="button" className="tab" onClick={async () => {
+              const toDelete = Object.entries(selectedSet).filter(([, v]) => v).map(([k]) => k);
+              if (toDelete.length === 0) return;
+              if (!confirm(`Wirklich ${toDelete.length} Datei(en) löschen?`)) return;
+              try { await adminDelete(toDelete); } catch (e: any) { alert(e?.message || 'Löschen fehlgeschlagen'); }
+              // refresh
+              const folderParam = activeFolder === '__favs__' ? '__all__' : activeFolder;
+              const s = await fetchSounds(query, folderParam);
+              setSounds(s.items);
+              setTotal(s.total);
+              setFolders(s.folders);
+              setSelectedSet({});
+            }}>🗑️ Löschen</button>
+            {selectedCount === 1 && (
+              <RenameInline onSubmit={async (newName) => {
+                const from = Object.keys(selectedSet).find((k) => selectedSet[k]);
+                if (!from) return;
+                try { await adminRename(from, newName); } catch (e: any) { alert(e?.message || 'Umbenennen fehlgeschlagen'); return; }
+                const folderParam = activeFolder === '__favs__' ? '__all__' : activeFolder;
+                const s = await fetchSounds(query, folderParam);
+                setSounds(s.items);
+                setTotal(s.total);
+                setFolders(s.folders);
+                setSelectedSet({});
+              }} />
+            )}
+            <button type="button" className="tab" onClick={async () => { await adminLogout(); setIsAdmin(false); }}>Logout</button>
+          </div>
+        </section>
+      )}
 
       {folders.length > 0 && (
         <nav className="tabs glass">
@@ -206,6 +259,14 @@ export default function App() {
           const isFav = !!favs[key];
           return (
             <div key={`${s.fileName}-${s.name}`} className="sound-wrap">
+              {isAdmin && (
+                <input
+                  type="checkbox"
+                  checked={!!selectedSet[key]}
+                  onChange={(e) => setSelectedSet((prev) => ({ ...prev, [key]: e.target.checked }))}
+                  style={{ position: 'absolute', left: 8, top: 8 }}
+                />
+              )}
               <button className="sound" type="button" onClick={() => handlePlay(s.name, s.relativePath)} disabled={loading}>
                 {s.isRecent ? '🆕 ' : ''}{s.name}
               </button>

@@ -50,6 +50,44 @@ export async function getVolume(guildId: string): Promise<number> {
   return typeof data?.volume === 'number' ? data.volume : 1;
 }
 
+// Admin
+export async function adminStatus(): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/admin/status`, { credentials: 'include' });
+  if (!res.ok) return false;
+  const data = await res.json();
+  return !!data?.authenticated;
+}
+
+export async function adminLogin(password: string): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/admin/login`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+    body: JSON.stringify({ password })
+  });
+  return res.ok;
+}
+
+export async function adminLogout(): Promise<void> {
+  await fetch(`${API_BASE}/admin/logout`, { method: 'POST', credentials: 'include' });
+}
+
+export async function adminDelete(paths: string[]): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/sounds/delete`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+    body: JSON.stringify({ paths })
+  });
+  if (!res.ok) throw new Error('Löschen fehlgeschlagen');
+}
+
+export async function adminRename(from: string, to: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/admin/sounds/rename`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+    body: JSON.stringify({ from, to })
+  });
+  if (!res.ok) throw new Error('Umbenennen fehlgeschlagen');
+  const data = await res.json();
+  return data?.to as string;
+}
+
 
 
 

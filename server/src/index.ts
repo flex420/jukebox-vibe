@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import crypto from 'node:crypto';
 import { Client, GatewayIntentBits, Partials, ChannelType, Events, type Message } from 'discord.js';
 import {
   joinVoiceChannel,
@@ -27,6 +28,7 @@ const __dirname = path.dirname(__filename);
 const PORT = Number(process.env.PORT ?? 8080);
 const SOUNDS_DIR = process.env.SOUNDS_DIR ?? '/data/sounds';
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN ?? '';
+const ADMIN_PWD = process.env.ADMIN_PWD ?? '';
 const ALLOWED_GUILD_IDS = (process.env.ALLOWED_GUILD_IDS ?? '')
   .split(',')
   .map((s) => s.trim())
@@ -218,6 +220,64 @@ app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ ok: true });
 });
 
+// --- Admin Auth ---
+type AdminPayload = { iat: number; exp: number };
+function b64url(input: Buffer | string): string {
+  return Buffer.from(input).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+function signAdminToken(payload: AdminPayload): string {
+  const body = b64url(JSON.stringify(payload));
+  const sig = crypto.createHmac('sha256', ADMIN_PWD || 'no-admin').update(body).digest('base64url');
+  return `${body}.${sig}`;
+}
+function verifyAdminToken(token: string | undefined): boolean {
+  if (!token || !ADMIN_PWD) return false;
+  const [body, sig] = token.split('.');
+  if (!body || !sig) return false;
+  const expected = crypto.createHmac('sha256', ADMIN_PWD).update(body).digest('base64url');
+  if (expected !== sig) return false;
+  try {
+    const payload = JSON.parse(Buffer.from(body, 'base64').toString('utf8')) as AdminPayload;
+    if (typeof payload.exp !== 'number') return false;
+    return Date.now() < payload.exp;
+  } catch {
+    return false;
+  }
+}
+function readCookie(req: Request, key: string): string | undefined {
+  const c = req.headers.cookie;
+  if (!c) return undefined;
+  for (const part of c.split(';')) {
+    const [k, v] = part.trim().split('=');
+    if (k === key) return decodeURIComponent(v || '');
+  }
+  return undefined;
+}
+function requireAdmin(req: Request, res: Response, next: () => void) {
+  if (!ADMIN_PWD) return res.status(503).json({ error: 'Admin nicht konfiguriert' });
+  const token = readCookie(req, 'admin');
+  if (!verifyAdminToken(token)) return res.status(401).json({ error: 'Nicht eingeloggt' });
+  next();
+}
+
+app.post('/api/admin/login', (req: Request, res: Response) => {
+  if (!ADMIN_PWD) return res.status(503).json({ error: 'Admin nicht konfiguriert' });
+  const { password } = req.body as { password?: string };
+  if (!password || password !== ADMIN_PWD) return res.status(401).json({ error: 'Falsches Passwort' });
+  const token = signAdminToken({ iat: Date.now(), exp: Date.now() + 7 * 24 * 3600 * 1000 });
+  res.setHeader('Set-Cookie', `admin=${encodeURIComponent(token)}; HttpOnly; Path=/; Max-Age=${7 * 24 * 3600}; SameSite=Lax`);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/logout', (_req: Request, res: Response) => {
+  res.setHeader('Set-Cookie', 'admin=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax');
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/status', (req: Request, res: Response) => {
+  res.json({ authenticated: verifyAdminToken(readCookie(req, 'admin')) });
+});
+
 app.get('/api/sounds', (req: Request, res: Response) => {
   const q = String(req.query.q ?? '').toLowerCase();
   const folderFilter = typeof req.query.folder === 'string' ? (req.query.folder as string) : '__all__';
@@ -282,6 +342,46 @@ app.get('/api/sounds', (req: Request, res: Response) => {
   }));
 
   res.json({ items: withRecentFlag, total, folders: foldersOut });
+});
+
+// --- Admin: Bulk-Delete ---
+app.post('/api/admin/sounds/delete', requireAdmin, (req: Request, res: Response) => {
+  const { paths } = req.body as { paths?: string[] };
+  if (!Array.isArray(paths) || paths.length === 0) return res.status(400).json({ error: 'paths[] erforderlich' });
+  const results: Array<{ path: string; ok: boolean; error?: string }> = [];
+  for (const rel of paths) {
+    const full = path.join(SOUNDS_DIR, rel);
+    try {
+      if (fs.existsSync(full) && fs.statSync(full).isFile()) {
+        fs.unlinkSync(full);
+        results.push({ path: rel, ok: true });
+      } else {
+        results.push({ path: rel, ok: false, error: 'nicht gefunden' });
+      }
+    } catch (e: any) {
+      results.push({ path: rel, ok: false, error: e?.message ?? 'Fehler' });
+    }
+  }
+  res.json({ ok: true, results });
+});
+
+// --- Admin: Umbenennen einer Datei ---
+app.post('/api/admin/sounds/rename', requireAdmin, (req: Request, res: Response) => {
+  const { from, to } = req.body as { from?: string; to?: string };
+  if (!from || !to) return res.status(400).json({ error: 'from und to erforderlich' });
+  const src = path.join(SOUNDS_DIR, from);
+  // Ziel nur Name ändern, Endung mp3 sicherstellen
+  const parsed = path.parse(from);
+  const dstRel = path.join(parsed.dir || '', `${to.replace(/[^a-zA-Z0-9_.\-]/g, '_')}.mp3`);
+  const dst = path.join(SOUNDS_DIR, dstRel);
+  try {
+    if (!fs.existsSync(src)) return res.status(404).json({ error: 'Quelle nicht gefunden' });
+    if (fs.existsSync(dst)) return res.status(409).json({ error: 'Ziel existiert bereits' });
+    fs.renameSync(src, dst);
+    res.json({ ok: true, from, to: dstRel });
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message ?? 'Rename fehlgeschlagen' });
+  }
 });
 
 app.get('/api/channels', (_req: Request, res: Response) => {
