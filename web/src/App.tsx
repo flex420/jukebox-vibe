@@ -165,7 +165,7 @@ export default function App() {
               <button className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => {
                 try { const res = await fetch('/api/sounds'); const data = await res.json(); const items = data?.items || []; if (!items.length || !selected) return; const rnd = items[Math.floor(Math.random()*items.length)]; const [guildId, channelId] = selected.split(':'); await playSound(rnd.name, guildId, channelId, volume, rnd.relativePath);} catch {}
               }}>Random</button>
-              <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => { if (!selected) return; const [guildId] = selected.split(':'); await fetch(`/api/stop?guildId=${encodeURIComponent(guildId)}`, { method:'POST' }); }}>Panik</button>
+              <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => { if (!selected) return; const [guildId] = selected.split(':'); await fetch(`/api/stop?guildId=${encodeURIComponent(guildId)}`, { method:'POST' }); }}>Panic</button>
             </div>
           </div>
         </header>
