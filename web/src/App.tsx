@@ -274,7 +274,7 @@ export default function App() {
                 </>
               ) : (
                 <div className="flex items-center gap-3 w-full">
-                  <span className="badge">Ausgewählt: {selectedCount}</span>
+                  <span className="bg-gray-700 text-white font-bold py-3 px-6 rounded-lg">Ausgewählt: {selectedCount}</span>
                   {selectedCount > 0 && (
                     <button
                       className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
