@@ -21,9 +21,7 @@ import {
 } from '@discordjs/voice';
 import sodium from 'libsodium-wrappers';
 import nacl from 'tweetnacl';
-import ytdl from 'ytdl-core';
-import { createRequire } from 'node:module';
-import child_process from 'node:child_process';
+// Streaming externer Plattformen entfernt – nur MP3-URLs werden noch unterstützt
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,7 +31,6 @@ const PORT = Number(process.env.PORT ?? 8080);
 const SOUNDS_DIR = process.env.SOUNDS_DIR ?? '/data/sounds';
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN ?? '';
 const ADMIN_PWD = process.env.ADMIN_PWD ?? '';
-const YTDLP_COOKIES_FILE = process.env.YTDLP_COOKIES_FILE ?? '';
 const ALLOWED_GUILD_IDS = (process.env.ALLOWED_GUILD_IDS ?? '')
   .split(',')
   .map((s) => s.trim())
@@ -45,36 +42,6 @@ if (!DISCORD_TOKEN) {
 }
 
 fs.mkdirSync(SOUNDS_DIR, { recursive: true });
-
-function buildYtDlpArgs(url: string, mode: 'stream' | 'download', outPath?: string): string[] {
-  const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Mobile/15E148 Safari/604.1';
-  const host = (() => { try { return new URL(url).hostname; } catch { return 'www.youtube.com'; } })();
-  const referer = `https://${host}/`;
-  const base = [
-    '--no-playlist',
-    '--no-warnings',
-    '--geo-bypass',
-    '--user-agent', ua,
-    '--referer', referer,
-  ];
-  // Feintuning je nach Host
-  if (host.includes('youtube')) {
-    base.push('--extractor-args', 'youtube:player_client=android');
-  }
-  if (host.includes('instagram')) {
-    // Instagram braucht oft Login → Cookies nutzen, sonst public Reels funktionieren ggf. ohne
-    // Keine speziellen extractor-args nötig, aber Referer & UA helfen
-  }
-  if (YTDLP_COOKIES_FILE) {
-    base.push('--cookies', YTDLP_COOKIES_FILE);
-  }
-  if (mode === 'stream') {
-    return ['-f', 'bestaudio/best', ...base, '-o', '-', url];
-  }
-  // download
-  const out = outPath ?? path.join(SOUNDS_DIR, `media-${Date.now()}.mp3`);
-  return ['-x', '--audio-format', 'mp3', '--audio-quality', '0', ...base, '-o', out, url];
-}
 
 // Persistente Lautstärke pro Guild speichern
 type PersistedState = { volumes: Record<string, number> };
@@ -615,13 +582,13 @@ app.listen(PORT, () => {
 });
 
 // --- Medien-URL abspielen ---
-// Unterstützt: YouTube (ytdl-core), generische URLs (yt-dlp), direkte mp3 (Download und Ablage)
+// Unterstützt: direkte MP3-URL (Download und Ablage)
 app.post('/api/play-url', async (req: Request, res: Response) => {
   try {
-    const { url, guildId, channelId, volume, download } = req.body as { url?: string; guildId?: string; channelId?: string; volume?: number; download?: boolean };
+    const { url, guildId, channelId, volume } = req.body as { url?: string; guildId?: string; channelId?: string; volume?: number };
     if (!url || !guildId || !channelId) return res.status(400).json({ error: 'url, guildId, channelId erforderlich' });
 
-    // MP3 direkt?
+    // Nur MP3 direkt
     const lower = url.toLowerCase();
     if (lower.endsWith('.mp3')) {
       const fileName = path.basename(new URL(url).pathname);
@@ -634,74 +601,7 @@ app.post('/api/play-url', async (req: Request, res: Response) => {
       req.body = { soundName: path.parse(fileName).name, guildId, channelId, volume, relativePath: fileName } as any;
       return (app._router as any).handle({ ...req, method: 'POST', url: '/api/play' }, res, () => {});
     }
-
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) return res.status(404).json({ error: 'Guild nicht gefunden' });
-    let state = guildAudioState.get(guildId);
-    if (!state) {
-      const channel = guild.channels.cache.get(channelId);
-      if (!channel || (channel.type !== ChannelType.GuildVoice && channel.type !== ChannelType.GuildStageVoice)) {
-        return res.status(400).json({ error: 'Ungültiger Voice-Channel' });
-      }
-      const connection = joinVoiceChannel({ channelId, guildId, adapterCreator: guild.voiceAdapterCreator as any, selfDeaf: false, selfMute: false });
-      const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
-      connection.subscribe(player);
-      state = { connection, player, guildId, channelId, currentVolume: getPersistedVolume(guildId) };
-      guildAudioState.set(guildId, state);
-      state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
-      attachVoiceLifecycle(state, guild);
-    }
-
-    const useVolume = typeof volume === 'number' ? Math.max(0, Math.min(1, volume)) : state.currentVolume ?? 1;
-
-    // Audio-Stream besorgen
-    // Download in Datei (mp3) falls gewünscht
-    if (download === true) {
-      const safeBase = `media-${Date.now()}`;
-      const outPath = path.join(SOUNDS_DIR, `${safeBase}.mp3`);
-      const yt = child_process.spawn('yt-dlp', buildYtDlpArgs(url, 'download', outPath));
-      yt.stderr.on('data', (d) => console.log(`[yt-dlp] ${String(d)}`));
-      yt.on('error', (err) => console.error('yt-dlp spawn error:', err));
-      yt.on('close', async (code) => {
-        if (code !== 0) {
-          console.error('yt-dlp exited with code', code);
-          try { res.status(500).json({ error: 'Download fehlgeschlagen' }); } catch {}
-          return;
-        }
-        // Datei abspielen
-        try {
-          const resource = createAudioResource(outPath, { inlineVolume: true });
-          if (resource.volume) resource.volume.setVolume(useVolume);
-          state!.player.stop();
-          state!.player.play(resource);
-          state!.currentResource = resource;
-          state!.currentVolume = useVolume;
-          try { res.json({ ok: true, saved: path.basename(outPath) }); } catch {}
-        } catch (e) {
-          console.error('play downloaded file error:', e);
-          try { res.status(500).json({ error: 'Abspielen der Datei fehlgeschlagen' }); } catch {}
-        }
-      });
-      return;
-    }
-
-    // Streaming: yt-dlp + ffmpeg Transcoding (stabiler als ytdl-core)
-    const ytArgs = buildYtDlpArgs(url, 'stream');
-    const yt = child_process.spawn('yt-dlp', ytArgs);
-    yt.stderr.on('data', (d) => console.log(`[yt-dlp] ${String(d)}`));
-    yt.on('error', (err) => console.error('yt-dlp spawn error:', err));
-    const ffArgs = ['-loglevel', 'error', '-i', 'pipe:0', '-f', 's16le', '-ar', '48000', '-ac', '2', 'pipe:1'];
-    const ff = child_process.spawn('ffmpeg', ffArgs);
-    ff.stderr.on('data', (d) => console.log(`[ffmpeg] ${String(d)}`));
-    yt.stdout.pipe(ff.stdin);
-
-    const resource = createAudioResource(ff.stdout as any, { inlineVolume: true, inputType: StreamType.Raw });
-    if (resource.volume) resource.volume.setVolume(useVolume);
-    state.player.stop();
-    state.player.play(resource);
-    state.currentResource = resource;
-    state.currentVolume = useVolume;
-    return res.json({ ok: true });
+    return res.status(400).json({ error: 'Nur MP3-Links werden unterstützt.' });
   } catch (e: any) {
     console.error('play-url error:', e);
     return res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });

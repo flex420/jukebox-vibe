@@ -88,10 +88,10 @@ export async function adminRename(from: string, to: string): Promise<string> {
   return data?.to as string;
 }
 
-export async function playUrl(url: string, guildId: string, channelId: string, volume: number, download?: boolean): Promise<void> {
+export async function playUrl(url: string, guildId: string, channelId: string, volume: number): Promise<void> {
   const res = await fetch(`${API_BASE}/play-url`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, guildId, channelId, volume, download: !!download })
+    body: JSON.stringify({ url, guildId, channelId, volume })
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
