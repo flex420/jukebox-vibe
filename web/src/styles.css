@@ -111,35 +111,35 @@ body {
 [data-theme="420"] .broccoli:nth-child(2) {
   top: 20%;
   right: 15%;
-  animation-delay: 3s;
+  animation-delay: 0s;
   animation-duration: 22s;
 }
 
 [data-theme="420"] .broccoli:nth-child(3) {
   bottom: 25%;
   left: 20%;
-  animation-delay: 6s;
+  animation-delay: 0s;
   animation-duration: 20s;
 }
 
 [data-theme="420"] .broccoli:nth-child(4) {
   bottom: 15%;
   right: 10%;
-  animation-delay: 9s;
+  animation-delay: 0s;
   animation-duration: 25s;
 }
 
 [data-theme="420"] .broccoli:nth-child(5) {
   top: 50%;
   left: 5%;
-  animation-delay: 12s;
+  animation-delay: 0s;
   animation-duration: 16s;
 }
 
 [data-theme="420"] .broccoli:nth-child(6) {
   top: 30%;
   right: 5%;
-  animation-delay: 15s;
+  animation-delay: 0s;
   animation-duration: 19s;
 }
 
