@@ -159,7 +159,7 @@ export default function App() {
         <div className="control-panel rounded-xl p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-center">
             <div className="relative">
-              <input className="input-field pl-10" placeholder="Nach Sounds suchen..." value={query} onChange={(e)=>setQuery(e.target.value)} />
+              <input className="input-field pl-10 with-left-icon" placeholder="Nach Sounds suchen..." value={query} onChange={(e)=>setQuery(e.target.value)} />
               <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>search</span>
             </div>
             <div className="relative">
@@ -186,7 +186,7 @@ export default function App() {
               <span className="text-sm font-semibold w-8 text-center" style={{color:'var(--text-secondary)'}}>{Math.round(volume*100)}%</span>
             </div>
             <div className="relative md:col-span-2 lg:col-span-1">
-              <input className="input-field pl-10" placeholder="MP3 URL..." value={mediaUrl} onChange={(e)=>setMediaUrl(e.target.value)} onKeyDown={async (e)=>{ if(e.key==='Enter'){ if(!selected){ setError('Bitte Voice-Channel wählen'); setInfo(null); return;} const [guildId,channelId]=selected.split(':'); try{ await playUrl(mediaUrl,guildId,channelId,volume); setError(null); setInfo('MP3 heruntergeladen und abgespielt.'); }catch(err:any){ setInfo(null); setError(err?.message||'Download fehlgeschlagen'); } } }} />
+              <input className="input-field pl-10 with-left-icon" placeholder="MP3 URL..." value={mediaUrl} onChange={(e)=>setMediaUrl(e.target.value)} onKeyDown={async (e)=>{ if(e.key==='Enter'){ if(!selected){ setError('Bitte Voice-Channel wählen'); setInfo(null); return;} const [guildId,channelId]=selected.split(':'); try{ await playUrl(mediaUrl,guildId,channelId,volume); setError(null); setInfo('MP3 heruntergeladen und abgespielt.'); }catch(err:any){ setInfo(null); setError(err?.message||'Download fehlgeschlagen'); } } }} />
               <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>link</span>
               <button className="absolute right-0 top-0 h-full px-4 text-white flex items-center rounded-r-lg transition-all font-semibold" style={{background:'var(--accent-green)'}} onClick={async ()=>{ if(!selected){ setError('Bitte Voice-Channel wählen'); setInfo(null); return;} const [guildId,channelId]=selected.split(':'); try{ await playUrl(mediaUrl,guildId,channelId,volume); setError(null); setInfo('MP3 heruntergeladen und abgespielt.'); }catch(e:any){ setInfo(null); setError(e?.message||'Download fehlgeschlagen'); } }}>
                 <span className="material-icons text-sm mr-1">file_download</span>
@@ -210,7 +210,7 @@ export default function App() {
               {!isAdmin && (
                 <>
                   <div className="relative w-full sm:w-auto" style={{maxWidth:'15%'}}>
-                    <input className="input-field pl-10" placeholder="Admin Passwort" type="password" value={adminPwd} onChange={(e)=>setAdminPwd(e.target.value)} />
+                    <input className="input-field pl-10 with-left-icon" placeholder="Admin Passwort" type="password" value={adminPwd} onChange={(e)=>setAdminPwd(e.target.value)} />
                     <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>lock</span>
                   </div>
                   <button className="bg-gray-800 text-white hover:bg-black font-semibold py-2 px-5 rounded-lg transition-all w-full sm:w-auto" style={{maxWidth:'15%'}} onClick={async ()=>{ const ok=await adminLogin(adminPwd); if(ok){ setIsAdmin(true); setAdminPwd(''); } else alert('Login fehlgeschlagen'); }}>Login</button>

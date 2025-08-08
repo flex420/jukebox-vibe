@@ -50,6 +50,9 @@ body {
 [data-theme="light"] .sound-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.1); border-color: #007aff; }
 .gradient-text { background: -webkit-linear-gradient(45deg, #333, #555); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
+/* Platz für linke Icons in allen Themes erzwingen */
+.input-field.pl-10 { padding-left: 2.5rem !important; }
+
 /* Rainbow Chaos Theme */
 [data-theme="rainbow"] body {
   background:
@@ -139,7 +142,7 @@ header p { opacity: .8; }
 }
 .control input, .control select {
   width: 100%;
-  padding: 12px 14px 12px 40px; /* Platz für linkes Icon */
+  padding: 12px 14px; /* Standard ohne Icon */
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.25);
   background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
@@ -155,7 +158,7 @@ header p { opacity: .8; }
 .select-trigger {
   width: 100%;
   text-align: left;
-  padding: 12px 14px 12px 40px; /* Platz für linkes Icon */
+  padding: 12px 14px; /* Standard ohne Icon */
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.32);
   background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.12));
@@ -191,6 +194,9 @@ header p { opacity: .8; }
   backdrop-filter: blur(18px);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
 }
+
+/* Konkrete Felder mit Icons: zusätzliche linke Padding über Klasse steuern */
+.with-left-icon { padding-left: 40px !important; }
 .control.theme select option { background: #0f1530; color: #e7e7ee; }
 .control input::placeholder { color: #c8c8d8; }
 
