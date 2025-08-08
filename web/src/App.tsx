@@ -119,6 +119,7 @@ export default function App() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="container">
       <header>
         <div className="header-row">
@@ -276,8 +277,14 @@ export default function App() {
                   className="row-check"
                   type="checkbox"
                   checked={!!selectedSet[key]}
-                  onClick={(e) => { e.stopPropagation(); }}
-                  onChange={(e) => setSelectedSet((prev) => ({ ...prev, [key]: e.target.checked }))}
+                  onClick={(e) => { try { e.stopPropagation(); } catch {} }}
+                  onChange={(e) => {
+                    try {
+                      setSelectedSet((prev) => ({ ...prev, [key]: e.target.checked }));
+                    } catch (err) {
+                      console.error('Checkbox change error:', err);
+                    }
+                  }}
                 />
               )}
               <button className="sound" type="button" onClick={(e) => { e.stopPropagation(); handlePlay(s.name, s.relativePath); }} disabled={loading}>
@@ -298,6 +305,7 @@ export default function App() {
       </section>
       {/* footer counter entfällt, da oben sichtbar */}
     </div>
+    </ErrorBoundary>
   );
 }
 
@@ -344,6 +352,28 @@ function CustomSelect({ channels, value, onChange }: SelectProps) {
       )}
     </div>
   );
+}
+
+// Einfache ErrorBoundary, damit die Seite nicht blank wird und Fehler sichtbar sind
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error?: Error }>{
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: undefined };
+  }
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error, info: any) { console.error('UI-ErrorBoundary:', error, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 20 }}>
+          <h2>Es ist ein Fehler aufgetreten</h2>
+          <pre style={{ whiteSpace: 'pre-wrap' }}>{String(this.state.error.message || this.state.error)}</pre>
+          <button type="button" onClick={() => this.setState({ error: undefined })}>Zurück</button>
+        </div>
+      );
+    }
+    return this.props.children as any;
+  }
 }
 
 
