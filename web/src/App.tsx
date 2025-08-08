@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchChannels, fetchSounds, playSound, setVolumeLive } from './api';
 import type { VoiceChannelInfo, Sound } from './types';
 import { getCookie, setCookie } from './cookies';
@@ -103,15 +103,11 @@ export default function App() {
             aria-label="Suche"
           />
         </div>
-        <div className="control select">
-          <select value={selected} onChange={(e) => setSelected(e.target.value)} aria-label="Voice-Channel">
-            {channels.map((c) => (
-              <option key={`${c.guildId}:${c.channelId}`} value={`${c.guildId}:${c.channelId}`}>
-                {c.guildName} – {c.channelName}
-              </option>
-            ))}
-          </select>
-        </div>
+        <CustomSelect
+          channels={channels}
+          value={selected}
+          onChange={setSelected}
+        />
         <div className="control volume">
           <label>🔊 {Math.round(volume * 100)}%</label>
           <input
@@ -192,8 +188,49 @@ export default function App() {
   );
 }
 
-function handlePlayWithPathFactory(play: (name: string, rel?: string) => Promise<void>) {
-  return (s: Sound & { relativePath?: string }) => play(s.name, s.relativePath);
+type SelectProps = {
+  channels: VoiceChannelInfo[];
+  value: string;
+  onChange: (v: string) => void;
+};
+
+function CustomSelect({ channels, value, onChange }: SelectProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, []);
+
+  const current = channels.find(c => `${c.guildId}:${c.channelId}` === value);
+
+  return (
+    <div className="control select custom-select" ref={ref}>
+      <button type="button" className="select-trigger" onClick={() => setOpen(v => !v)}>
+        {current ? `${current.guildName} – ${current.channelName}` : 'Channel wählen'}
+        <span className="chev">▾</span>
+      </button>
+      {open && (
+        <div className="select-menu">
+          {channels.map((c) => {
+            const v = `${c.guildId}:${c.channelId}`;
+            const active = v === value;
+            return (
+              <button
+                type="button"
+                key={v}
+                className={`select-item ${active ? 'active' : ''}`}
+                onClick={() => { onChange(v); setOpen(false); }}
+              >
+                {c.guildName} – {c.channelName}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 

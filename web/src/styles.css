@@ -40,6 +40,37 @@ header p { opacity: .8; }
 }
 .control select option { background-color: #0f1530; color: #e7e7ee; }
 .control select optgroup { background-color: #0f1530; color: #c8c8d8; }
+
+/* Custom Select */
+.custom-select { position: relative; }
+.select-trigger {
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.25);
+  background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+  color: #e7e7ee;
+  backdrop-filter: blur(18px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+}
+.select-trigger .chev { float: right; opacity: .8; }
+.select-menu {
+  position: absolute; inset: auto 0  auto 0; top: calc(100% + 6px);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.25);
+  background: rgba(15,21,48,.98);
+  box-shadow: 0 24px 48px rgba(0,0,0,.5);
+  max-height: 280px; overflow-y: auto;
+  z-index: 20;
+}
+.select-item {
+  width: 100%; text-align: left; padding: 10px 12px; color: #e7e7ee;
+  background: transparent; border: 0;
+}
+.select-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+.select-item.active { background: rgba(255,255,255,.14); color: #fff; }
 .control input::placeholder { color: #c8c8d8; }
 
 .control.volume { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
