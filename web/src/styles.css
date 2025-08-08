@@ -3,9 +3,10 @@
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background: radial-gradient(1200px 800px at 20% -10%, #2a2f4f 0%, transparent 60%),
-              radial-gradient(1200px 800px at 120% 10%, #4c2a85 0%, transparent 60%),
-              linear-gradient(180deg, #0b1020 0%, #0f1530 100%);
+  background:
+    radial-gradient(1200px 800px at 15% -10%, rgba(99,102,241,.25), transparent 60%),
+    radial-gradient(1200px 800px at 110% 10%, rgba(168,85,247,.22), transparent 60%),
+    linear-gradient(180deg, #0b1020 0%, #0f1530 100%);
   min-height: 100vh;
   color: #e7e7ee;
 }
@@ -17,19 +18,31 @@ header p { opacity: .8; }
 .badge { align-self: flex-start; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); padding: 6px 10px; border-radius: 999px; font-size: 13px; }
 
 .controls { display: grid; grid-template-columns: 1fr minmax(240px, 300px) 220px; gap: 12px; align-items: center; margin-bottom: 18px; }
+.controls.glass {
+  backdrop-filter: saturate(140%) blur(20px);
+  background: linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+  border: 1px solid rgba(255,255,255,.28);
+  border-right-color: rgba(255,255,255,.18);
+  border-bottom-color: rgba(255,255,255,.18);
+  padding: 14px;
+  border-radius: 18px;
+  box-shadow: 0 20px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.25);
+}
 .control input, .control select {
   width: 100%;
   padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(18, 24, 48, .8);
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.25);
+  background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
   color: #fff;
+  backdrop-filter: blur(18px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
 }
 .control input::placeholder { color: #c8c8d8; }
 
 .control.volume { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
 .control.volume label { font-weight: 700; opacity: .9; }
-.control.volume input[type="range"] { accent-color: #8b5cf6; }
+.control.volume input[type="range"] { accent-color: #60a5fa; }
 
 .error { background: rgba(255, 99, 99, .12); color: #ffd1d1; border: 1px solid rgba(255, 99, 99, .3); padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; }
 
@@ -38,15 +51,15 @@ header p { opacity: .8; }
 .sound {
   padding: 18px 16px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: linear-gradient(135deg, rgba(88, 28, 135, 0.9), rgba(59, 130, 246, 0.9));
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.08);
   color: #fff;
   cursor: pointer;
   font-weight: 700;
   letter-spacing: .2px;
   box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
-.sound:hover { filter: brightness(1.06); }
+.sound:hover { filter: brightness(1.06); background: rgba(255,255,255,.1); }
 .sound:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .fav {
@@ -73,11 +86,12 @@ header p { opacity: .8; }
 .tab {
   padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(18,24,48,.6);
+  border: 1px solid rgba(255,255,255,.25);
+  background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
   color: #e7e7ee;
 }
-.tab.active { background: linear-gradient(135deg, rgba(88,28,135,.9), rgba(59,130,246,.9)); color: #fff; border-color: transparent; }
+.tab:hover { background: rgba(255,255,255,.12); }
+.tab.active { background: linear-gradient(135deg, rgba(168,85,247,.55), rgba(59,130,246,.55)); color: #fff; border-color: transparent; }
 
 
 

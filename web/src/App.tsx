@@ -94,7 +94,7 @@ export default function App() {
         <div className="badge">Geladene Sounds: {total}</div>
       </header>
 
-      <section className="controls">
+      <section className="controls glass">
         <div className="control search">
           <input
             value={query}
@@ -134,7 +134,7 @@ export default function App() {
       </section>
 
       {folders.length > 0 && (
-        <nav className="tabs">
+        <nav className="tabs glass">
           {/* Favoriten Tab */}
           <button
             key="__favs__"
