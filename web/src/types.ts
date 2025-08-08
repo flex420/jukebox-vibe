@@ -3,6 +3,7 @@ export type Sound = {
   name: string;
   folder?: string;
   relativePath?: string;
+  isRecent?: boolean;
 };
 
 export type SoundsResponse = {

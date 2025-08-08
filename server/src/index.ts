@@ -248,16 +248,40 @@ app.get('/api/sounds', (req: Request, res: Response) => {
   }
 
   const allItems = [...rootFiles, ...folderItems].sort((a, b) => a.name.localeCompare(b.name));
+
+  // Zeitstempel für Neu-Logik
+  type ItemWithTime = { fileName: string; name: string; folder: string; relativePath: string; mtimeMs: number };
+  const allWithTime: ItemWithTime[] = [...allItems].map((it) => {
+    const stat = fs.statSync(path.join(SOUNDS_DIR, it.relativePath));
+    return { ...it, mtimeMs: stat.mtimeMs };
+  });
+  const sortedByNewest = [...allWithTime].sort((a, b) => b.mtimeMs - a.mtimeMs);
+  const recentTop10 = sortedByNewest.slice(0, 10);
+  const recentTop5Set = new Set(recentTop10.slice(0, 5).map((x) => x.relativePath));
   let itemsByFolder = allItems;
   if (folderFilter !== '__all__') {
-    itemsByFolder = allItems.filter((it) => (folderFilter === '' ? it.folder === '' : it.folder === folderFilter));
+    if (folderFilter === '__recent__') {
+      itemsByFolder = recentTop10.map(({ fileName, name, folder, relativePath }) => ({ fileName, name, folder, relativePath }));
+    } else {
+      itemsByFolder = allItems.filter((it) => (folderFilter === '' ? it.folder === '' : it.folder === folderFilter));
+    }
   }
   const filteredItems = itemsByFolder.filter((s) => (q ? s.name.toLowerCase().includes(q) : true));
 
   const total = allItems.length;
-  const foldersOut = [{ key: '__all__', name: 'Alle', count: total }, ...folders];
+  const recentCount = Math.min(10, total);
+  const foldersOut = [
+    { key: '__all__', name: 'Alle', count: total },
+    { key: '__recent__', name: 'Neu', count: recentCount },
+    ...folders
+  ];
+  // isRecent-Flag für UI (Top 5 der neuesten)
+  const withRecentFlag = filteredItems.map((it) => ({
+    ...it,
+    isRecent: recentTop5Set.has(it.relativePath ?? it.fileName)
+  }));
 
-  res.json({ items: filteredItems, total, folders: foldersOut });
+  res.json({ items: withRecentFlag, total, folders: foldersOut });
 });
 
 app.get('/api/channels', (_req: Request, res: Response) => {

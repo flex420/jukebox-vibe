@@ -164,6 +164,21 @@ export default function App() {
           >
             Favoriten ({favCount})
           </button>
+          {/* Neueste 10 */}
+          <button
+            key="__recent__"
+            className={`tab ${activeFolder === '__recent__' ? 'active' : ''}`}
+            type="button"
+            onClick={async () => {
+              setActiveFolder('__recent__');
+              const resp = await fetchSounds(undefined, '__recent__');
+              setSounds(resp.items);
+              setTotal(resp.total);
+              setFolders(resp.folders);
+            }}
+          >
+            Neu
+          </button>
           {folders.map((f) => (
             <button
               key={f.key}
@@ -192,7 +207,7 @@ export default function App() {
           return (
             <div key={`${s.fileName}-${s.name}`} className="sound-wrap">
               <button className="sound" type="button" onClick={() => handlePlay(s.name, s.relativePath)} disabled={loading}>
-                {s.name}
+                {s.isRecent ? '🆕 ' : ''}{s.name}
               </button>
               <button
                 className={`fav ${isFav ? 'active' : ''}`}
