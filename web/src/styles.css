@@ -155,8 +155,10 @@ header p { opacity: .8; }
 
 .error { background: rgba(255, 99, 99, .12); color: #ffd1d1; border: 1px solid rgba(255, 99, 99, .3); padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-.sound-wrap { position: relative; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.sound-wrap { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+.sound-wrap.row .sound { width: 100%; }
+.row-check { width: 18px; height: 18px; accent-color: #60a5fa; }
 .select-check {
   position: absolute;
   left: 8px;

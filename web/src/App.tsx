@@ -269,17 +269,17 @@ export default function App() {
           const key = `${s.relativePath ?? s.fileName}`;
           const isFav = !!favs[key];
           return (
-            <div key={`${s.fileName}-${s.name}`} className="sound-wrap">
+            <div key={`${s.fileName}-${s.name}`} className="sound-wrap row">
               {isAdmin && (
                 <input
-                  className="select-check"
+                  className="row-check"
                   type="checkbox"
                   checked={!!selectedSet[key]}
                   onClick={(e) => { e.stopPropagation(); }}
                   onChange={(e) => setSelectedSet((prev) => ({ ...prev, [key]: e.target.checked }))}
                 />
               )}
-              <button className="sound" type="button" onClick={() => handlePlay(s.name, s.relativePath)} disabled={loading}>
+              <button className="sound" type="button" onClick={(e) => { e.stopPropagation(); handlePlay(s.name, s.relativePath); }} disabled={loading}>
                 {s.isRecent ? '🆕 ' : ''}{s.name}
               </button>
               <button
