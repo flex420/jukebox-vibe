@@ -17,10 +17,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const [s, c] = await Promise.all([fetchSounds(undefined, activeFolder), fetchChannels()]);
-        setSounds(s.items);
-        setTotal(s.total);
-        setFolders(s.folders);
+        const c = await fetchChannels();
         setChannels(c);
         const stored = localStorage.getItem('selectedChannel');
         if (stored && c.find(x => `${x.guildId}:${x.channelId}` === stored)) {
@@ -29,20 +26,23 @@ export default function App() {
           setSelected(`${c[0].guildId}:${c[0].channelId}`);
         }
       } catch (e: any) {
-        setError(e?.message || 'Fehler beim Laden');
+        setError(e?.message || 'Fehler beim Laden der Channels');
       }
     })();
+  }, []);
 
-    const interval = setInterval(async () => {
+  useEffect(() => {
+    (async () => {
       try {
         const s = await fetchSounds(query, activeFolder);
         setSounds(s.items);
         setTotal(s.total);
         setFolders(s.folders);
-      } catch {}
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [activeFolder]);
+      } catch (e: any) {
+        setError(e?.message || 'Fehler beim Laden der Sounds');
+      }
+    })();
+  }, [activeFolder, query]);
 
   useEffect(() => {
     if (selected) localStorage.setItem('selectedChannel', selected);
