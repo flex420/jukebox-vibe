@@ -38,6 +38,8 @@ header p { opacity: .8; }
   backdrop-filter: blur(18px);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
 }
+.control select option { background-color: #0f1530; color: #e7e7ee; }
+.control select optgroup { background-color: #0f1530; color: #c8c8d8; }
 .control input::placeholder { color: #c8c8d8; }
 
 .control.volume { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
