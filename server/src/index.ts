@@ -44,16 +44,31 @@ if (!DISCORD_TOKEN) {
 
 fs.mkdirSync(SOUNDS_DIR, { recursive: true });
 
-// Persistente Lautstärke pro Guild speichern
+// Persistente Lautstärke und Play-Zähler speichern
 type PersistedState = { volumes: Record<string, number>; plays: Record<string, number>; totalPlays: number };
-const STATE_FILE = path.join(path.resolve(SOUNDS_DIR, '..'), 'state.json');
+// Neuer, persistenter Speicherort direkt im Sounds-Volume
+const STATE_FILE_NEW = path.join(SOUNDS_DIR, 'state.json');
+// Alter Speicherort (eine Ebene über SOUNDS_DIR). Wird für Migration gelesen, falls vorhanden.
+const STATE_FILE_OLD = path.join(path.resolve(SOUNDS_DIR, '..'), 'state.json');
 
 function readPersistedState(): PersistedState {
   try {
-    if (fs.existsSync(STATE_FILE)) {
-      const raw = fs.readFileSync(STATE_FILE, 'utf8');
+    // 1) Bevorzugt neuen Speicherort lesen
+    if (fs.existsSync(STATE_FILE_NEW)) {
+      const raw = fs.readFileSync(STATE_FILE_NEW, 'utf8');
       const parsed = JSON.parse(raw);
       return { volumes: parsed.volumes ?? {}, plays: parsed.plays ?? {}, totalPlays: parsed.totalPlays ?? 0 } as PersistedState;
+    }
+    // 2) Fallback: alten Speicherort lesen und sofort nach NEW migrieren
+    if (fs.existsSync(STATE_FILE_OLD)) {
+      const raw = fs.readFileSync(STATE_FILE_OLD, 'utf8');
+      const parsed = JSON.parse(raw);
+      const migrated: PersistedState = { volumes: parsed.volumes ?? {}, plays: parsed.plays ?? {}, totalPlays: parsed.totalPlays ?? 0 };
+      try {
+        fs.mkdirSync(path.dirname(STATE_FILE_NEW), { recursive: true });
+        fs.writeFileSync(STATE_FILE_NEW, JSON.stringify(migrated, null, 2), 'utf8');
+      } catch {}
+      return migrated;
     }
   } catch {}
   return { volumes: {}, plays: {}, totalPlays: 0 };
@@ -61,8 +76,8 @@ function readPersistedState(): PersistedState {
 
 function writePersistedState(state: PersistedState): void {
   try {
-    fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
+    fs.mkdirSync(path.dirname(STATE_FILE_NEW), { recursive: true });
+    fs.writeFileSync(STATE_FILE_NEW, JSON.stringify(state, null, 2), 'utf8');
   } catch (e) {
     console.warn('Persisted state konnte nicht geschrieben werden:', e);
   }
