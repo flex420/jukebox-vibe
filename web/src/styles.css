@@ -71,6 +71,13 @@ body {
 
 .container { max-width: 1200px; margin: 0 auto; padding: 28px; }
 header { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 header h1 { margin: 0; font-weight: 800; letter-spacing: .3px; }
 header p { opacity: .8; }
 .clock {

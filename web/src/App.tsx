@@ -121,9 +121,10 @@ export default function App() {
   return (
     <div className="container">
       <header>
-        <div className="clock">{clock}</div>
-        <h1>Discord Soundboard</h1>
-        <p>Schicke dem Bot per privater Nachricht eine .mp3 — neue Sounds erscheinen automatisch.</p>
+        <div className="header-row">
+          <h1>Einmal mit Soundboard -Profis</h1>
+          <div className="clock">{clock}</div>
+        </div>
         <div className="badge">Geladene Sounds: {total}</div>
         {isAdmin && (
           <div className="badge">Admin-Modus</div>
