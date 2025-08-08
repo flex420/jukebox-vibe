@@ -168,7 +168,21 @@ export default function App() {
             </div>
             <div className="flex items-center space-x-3">
               <span className="material-icons" style={{color:'var(--text-secondary)'}}>volume_up</span>
-              <input className="w-full h-2 rounded-lg appearance-none cursor-pointer" style={{background:'var(--bg-tertiary)'}} type="range" min={0} max={1} step={0.01} value={volume} onChange={async (e)=>{ const v=parseFloat(e.target.value); setVolume(v); if(selected){ const [guildId]=selected.split(':'); try{ await setVolumeLive(guildId, v);}catch{} }}} />
+              <input
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                type="range" min={0} max={1} step={0.01}
+                value={volume}
+                onChange={async (e)=>{
+                  const v = parseFloat(e.target.value);
+                  setVolume(v);
+                  // CSS-Variable setzen, um die Füllbreite zu steuern
+                  const percent = `${Math.round(v * 100)}%`;
+                  try { (e.target as HTMLInputElement).style.setProperty('--_fill', percent); } catch {}
+                  if(selected){ const [guildId]=selected.split(':'); try{ await setVolumeLive(guildId, v);}catch{} }
+                }}
+                // Initiale Füllbreite, falls State geladen ist
+                style={{ ['--_fill' as any]: `${Math.round(volume*100)}%` }}
+              />
               <span className="text-sm font-semibold w-8 text-center" style={{color:'var(--text-secondary)'}}>{Math.round(volume*100)}%</span>
             </div>
             <div className="relative md:col-span-2 lg:col-span-1">
