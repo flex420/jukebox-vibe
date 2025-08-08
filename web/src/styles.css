@@ -329,6 +329,8 @@ header {
   background-clip: padding-box, border-box;
   color: #ffffff;
 }
+/* Rainbow Header: Sekundärtexte sichtbar machen */
+[data-theme="rainbow"] header .text-gray-400 { color: #ffffff !important; opacity: 1 !important; }
 /* Header-Titel und Uhrzeit */
 header h1 { 
   margin: 0; 
