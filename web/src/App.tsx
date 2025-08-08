@@ -17,7 +17,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const [s, c] = await Promise.all([fetchSounds(), fetchChannels()]);
+        const [s, c] = await Promise.all([fetchSounds(undefined, activeFolder), fetchChannels()]);
         setSounds(s.items);
         setTotal(s.total);
         setFolders(s.folders);
@@ -50,13 +50,9 @@ export default function App() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let base = sounds;
-    if (activeFolder !== '__all__') {
-      base = sounds.filter((s: any) => (activeFolder === '' ? !s.folder : s.folder === activeFolder));
-    }
-    if (!q) return base;
-    return base.filter((s) => s.name.toLowerCase().includes(q));
-  }, [sounds, query, activeFolder]);
+    if (!q) return sounds;
+    return sounds.filter((s) => s.name.toLowerCase().includes(q));
+  }, [sounds, query]);
 
   async function handlePlay(name: string, rel?: string) {
     setError(null);
@@ -128,7 +124,7 @@ export default function App() {
               type="button"
               onClick={async () => {
                 setActiveFolder(f.key);
-                const resp = await fetchSounds(query, f.key);
+                const resp = await fetchSounds(undefined, f.key);
                 setSounds(resp.items);
                 setTotal(resp.total);
                 setFolders(resp.folders);
