@@ -15,6 +15,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState<number>(1);
   const [favs, setFavs] = useState<Record<string, boolean>>({});
+  const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'dark');
 
   useEffect(() => {
     (async () => {
@@ -59,6 +60,12 @@ export default function App() {
   useEffect(() => {
     try { setCookie('favs', JSON.stringify(favs)); } catch {}
   }, [favs]);
+
+  // Theme anwenden/persistieren
+  useEffect(() => {
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     if (selected) localStorage.setItem('selectedChannel', selected);
@@ -126,6 +133,13 @@ export default function App() {
             }}
             aria-label="Lautstärke"
           />
+        </div>
+        <div className="control theme">
+          <select value={theme} onChange={(e) => setTheme(e.target.value)} aria-label="Theme">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="rainbow">Rainbow Chaos</option>
+          </select>
         </div>
       </section>
 

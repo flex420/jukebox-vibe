@@ -1,5 +1,6 @@
 :root { color-scheme: dark; }
 * { box-sizing: border-box; }
+[data-theme="dark"] body,
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
@@ -10,6 +11,51 @@ body {
   min-height: 100vh;
   color: #e7e7ee;
 }
+
+/* Light Theme */
+[data-theme="light"] body {
+  background:
+    radial-gradient(1200px 800px at 15% -10%, rgba(59,130,246,.18), transparent 60%),
+    radial-gradient(1200px 800px at 110% 10%, rgba(99,102,241,.16), transparent 60%),
+    linear-gradient(180deg, #f5f7fb 0%, #eef2f7 100%);
+  color: #0f172a;
+}
+[data-theme="light"] .controls.glass,
+[data-theme="light"] .tabs.glass,
+[data-theme="light"] .select-trigger,
+[data-theme="light"] .control input,
+[data-theme="light"] .control select,
+[data-theme="light"] .sound {
+  background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.7));
+  color: #0f172a;
+  border-color: rgba(0,0,0,.08);
+  box-shadow: 0 8px 24px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,1);
+}
+[data-theme="light"] .select-menu { background: #ffffff; color: #0f172a; }
+[data-theme="light"] .select-item:hover { background: rgba(15,23,42,.06); }
+[data-theme="light"] .tab.active { background: linear-gradient(135deg, rgba(59,130,246,.25), rgba(99,102,241,.25)); }
+[data-theme="light"] .badge { background: rgba(15,23,42,.06); border-color: rgba(15,23,42,.1); color: #0f172a; }
+
+/* Rainbow Chaos Theme */
+[data-theme="rainbow"] body {
+  background:
+    radial-gradient(1200px 800px at 0% 0%, rgba(255,99,132,.35), transparent 60%),
+    radial-gradient(1200px 800px at 100% 0%, rgba(54,162,235,.35), transparent 60%),
+    radial-gradient(1200px 800px at 0% 100%, rgba(255,206,86,.35), transparent 60%),
+    radial-gradient(1200px 800px at 100% 100%, rgba(75,192,192,.35), transparent 60%),
+    linear-gradient(180deg, #101018 0%, #121226 100%);
+}
+[data-theme="rainbow"] .controls.glass,
+[data-theme="rainbow"] .tabs.glass,
+[data-theme="rainbow"] .select-trigger,
+[data-theme="rainbow"] .control input,
+[data-theme="rainbow"] .control select,
+[data-theme="rainbow"] .sound {
+  background: linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.08));
+  border-image: linear-gradient(90deg, #ff6384, #36a2eb, #ffce56, #4bc0c0, #9966ff) 1;
+  border-width: 1px; border-style: solid;
+}
+[data-theme="rainbow"] .tab.active { background: linear-gradient(90deg, #ff6384AA, #36a2ebAA, #ffce56AA, #4bc0c0AA, #9966ffAA); }
 
 .container { max-width: 1200px; margin: 0 auto; padding: 28px; }
 header { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
