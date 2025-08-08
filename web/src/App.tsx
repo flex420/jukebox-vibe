@@ -415,12 +415,13 @@ function RenameInline({ onSubmit }: RenameInlineProps) {
   }
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-      <input
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
-        placeholder="Neuer Name"
-        onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
-      />
+             <input
+         value={val}
+         onChange={(e) => setVal(e.target.value)}
+         placeholder="Neuer Name"
+         onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
+         style={{ color: '#000000' }}
+       />
       <button type="button" className="tab" onClick={() => void submit()}>Umbenennen</button>
     </div>
   );
