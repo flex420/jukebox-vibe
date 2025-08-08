@@ -39,6 +39,36 @@ if (!DISCORD_TOKEN) {
 
 fs.mkdirSync(SOUNDS_DIR, { recursive: true });
 
+// Persistente Lautstärke pro Guild speichern
+type PersistedState = { volumes: Record<string, number> };
+const STATE_FILE = path.join(path.resolve(SOUNDS_DIR, '..'), 'state.json');
+
+function readPersistedState(): PersistedState {
+  try {
+    if (fs.existsSync(STATE_FILE)) {
+      const raw = fs.readFileSync(STATE_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      return { volumes: parsed.volumes ?? {} } as PersistedState;
+    }
+  } catch {}
+  return { volumes: {} };
+}
+
+function writePersistedState(state: PersistedState): void {
+  try {
+    fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
+  } catch (e) {
+    console.warn('Persisted state konnte nicht geschrieben werden:', e);
+  }
+}
+
+const persistedState: PersistedState = readPersistedState();
+const getPersistedVolume = (guildId: string): number => {
+  const v = persistedState.volumes[guildId];
+  return typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1;
+};
+
 // --- Voice Abhängigkeiten prüfen ---
 await sodium.ready;
 // init nacl to ensure it loads
@@ -284,7 +314,7 @@ app.post('/api/play', async (req: Request, res: Response) => {
       });
       const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
       connection.subscribe(player);
-      state = { connection, player, guildId, channelId, currentVolume: 1 };
+      state = { connection, player, guildId, channelId, currentVolume: getPersistedVolume(guildId) };
       guildAudioState.set(guildId, state);
 
       // Connection State Logs
@@ -331,7 +361,7 @@ app.post('/api/play', async (req: Request, res: Response) => {
         });
         const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
         connection.subscribe(player);
-        state = { connection, player, guildId, channelId, currentVolume: 1 };
+        state = { connection, player, guildId, channelId, currentVolume: getPersistedVolume(guildId) };
         guildAudioState.set(guildId, state);
 
         state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
@@ -363,6 +393,9 @@ app.post('/api/play', async (req: Request, res: Response) => {
     state.player.play(resource);
     state.currentResource = resource;
     state.currentVolume = volumeToUse;
+    // Persistieren
+    persistedState.volumes[guildId] = volumeToUse;
+    writePersistedState(persistedState);
     console.log(`${new Date().toISOString()} | player.play() called for ${soundName}`);
     return res.json({ ok: true });
   } catch (err: any) {
@@ -381,18 +414,32 @@ app.post('/api/volume', (req: Request, res: Response) => {
     const safeVolume = Math.max(0, Math.min(1, volume));
     const state = guildAudioState.get(guildId);
     if (!state) {
-      return res.status(404).json({ error: 'Kein Voice-State für diese Guild' });
+      // Kein aktiver Player: nur persistieren für nächste Wiedergabe
+      persistedState.volumes[guildId] = safeVolume;
+      writePersistedState(persistedState);
+      return res.json({ ok: true, volume: safeVolume, persistedOnly: true });
     }
     state.currentVolume = safeVolume;
     if (state.currentResource?.volume) {
       state.currentResource.volume.setVolume(safeVolume);
       console.log(`${new Date().toISOString()} | live setVolume(${safeVolume}) guild=${guildId}`);
     }
+    persistedState.volumes[guildId] = safeVolume;
+    writePersistedState(persistedState);
     return res.json({ ok: true, volume: safeVolume });
   } catch (e: any) {
     console.error('Volume-Fehler:', e);
     return res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });
   }
+});
+
+// Aktuelle/gespeicherte Lautstärke abrufen
+app.get('/api/volume', (req: Request, res: Response) => {
+  const guildId = String(req.query.guildId ?? '');
+  if (!guildId) return res.status(400).json({ error: 'guildId erforderlich' });
+  const state = guildAudioState.get(guildId);
+  const v = state?.currentVolume ?? getPersistedVolume(guildId);
+  return res.json({ volume: v });
 });
 
 // Static Frontend ausliefern (Vite build)

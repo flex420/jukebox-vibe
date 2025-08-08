@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume } from './api';
 import type { VoiceChannelInfo, Sound } from './types';
 import { getCookie, setCookie } from './cookies';
 
@@ -68,7 +68,17 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (selected) localStorage.setItem('selectedChannel', selected);
+    (async () => {
+      if (selected) {
+        localStorage.setItem('selectedChannel', selected);
+        // gespeicherte Lautstärke vom Server laden
+        try {
+          const [guildId] = selected.split(':');
+          const v = await getVolume(guildId);
+          setVolume(v);
+        } catch {}
+      }
+    })();
   }, [selected]);
 
   const filtered = useMemo(() => {

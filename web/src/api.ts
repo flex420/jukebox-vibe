@@ -41,6 +41,15 @@ export async function setVolumeLive(guildId: string, volume: number): Promise<vo
   }
 }
 
+export async function getVolume(guildId: string): Promise<number> {
+  const url = new URL(`${API_BASE}/volume`, window.location.origin);
+  url.searchParams.set('guildId', guildId);
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error('Fehler beim Laden der Lautstärke');
+  const data = await res.json();
+  return typeof data?.volume === 'number' ? data.volume : 1;
+}
+
 
 
 
