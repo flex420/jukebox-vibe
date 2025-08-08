@@ -212,7 +212,7 @@ export default function App() {
                                  <select className="input-field appearance-none pl-10" value={theme} onChange={(e)=>setTheme(e.target.value)}>
                    <option value="dark">Dark</option>
                    <option value="rainbow">Rainbow</option>
-                   <option value="420">420 Theme</option>
+                   <option value="420">420</option>
                  </select>
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>palette</span>
                 <span className="material-icons absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{color:'var(--text-secondary)'}}>unfold_more</span>
