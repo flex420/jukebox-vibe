@@ -376,6 +376,29 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { err
   }
 }
 
+// Inline-Komponente für Umbenennen (nur bei genau 1 Selektion sichtbar)
+type RenameInlineProps = { onSubmit: (newName: string) => void | Promise<void> };
+function RenameInline({ onSubmit }: RenameInlineProps) {
+  const [val, setVal] = useState('');
+  async function submit() {
+    const n = val.trim();
+    if (!n) return;
+    await onSubmit(n);
+    setVal('');
+  }
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <input
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        placeholder="Neuer Name"
+        onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
+      />
+      <button type="button" className="tab" onClick={() => void submit()}>Umbenennen</button>
+    </div>
+  );
+}
+
 
 
 
