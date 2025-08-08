@@ -150,20 +150,14 @@ async function handleCommand(message: Message, content: string) {
     return;
   }
   if (cmd === '?restart') {
-    await reply('Möchten Sie den Bot neu starten? Antworte mit Y oder N innerhalb 30s.');
-    const collector = message.channel?.createMessageCollector?.({ filter: (m: any) => m.author?.id === message.author?.id, time: 30_000, max: 1 });
-    if (!collector) return;
-    collector.on('collect', async (m: any) => {
-      const v = (m.content || '').trim().toLowerCase();
-      if (v === 'y' || v === 'yes' || v === 'ja') {
-        await reply('Neustart wird ausgeführt...');
-        try { await fetch('http://127.0.0.1:9001/_restart').catch(() => {}); } catch {}
-        // fallback: Prozess beenden; Orchestrator startet neu
-        setTimeout(() => process.exit(0), 500);
-      } else {
-        await reply('Abgebrochen.');
-      }
-    });
+    const confirm = (parts[1] || '').toLowerCase();
+    if (confirm === 'y' || confirm === 'yes' || confirm === 'ja' || confirm === 'confirm') {
+      await reply('Neustart wird ausgeführt...');
+      try { await fetch('http://127.0.0.1:9001/_restart').catch(() => {}); } catch {}
+      setTimeout(() => process.exit(0), 500);
+    } else {
+      await reply('Bitte mit "?restart y" bestätigen.');
+    }
     return;
   }
   await reply('Unbekannter Command. Nutze ?help.');
