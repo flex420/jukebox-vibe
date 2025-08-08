@@ -290,7 +290,6 @@ export default function App() {
                 <div className="sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer" onClick={()=>handlePlay(s.name, s.relativePath)}>
                   <span className="text-sm font-medium truncate pr-2">{s.name}</span>
                   <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="text-gray-400 hover:text-[var(--accent-green)]" onClick={(e)=>{e.stopPropagation(); handlePlay(s.name, s.relativePath);}}><span className="material-icons text-xl">add_circle_outline</span></button>
                     <button className="text-gray-400 hover:text-[var(--accent-blue)]" onClick={(e)=>{e.stopPropagation(); setFavs(prev=>({ ...prev, [key]: !prev[key] }));}}><span className="material-icons text-xl">{isFav?'star':'star_border'}</span></button>
                   </div>
                 </div>
