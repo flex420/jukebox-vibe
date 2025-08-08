@@ -45,7 +45,7 @@ if (!DISCORD_TOKEN) {
 fs.mkdirSync(SOUNDS_DIR, { recursive: true });
 
 // Persistente Lautstärke pro Guild speichern
-type PersistedState = { volumes: Record<string, number>; plays: Record<string, number> };
+type PersistedState = { volumes: Record<string, number>; plays: Record<string, number>; totalPlays: number };
 const STATE_FILE = path.join(path.resolve(SOUNDS_DIR, '..'), 'state.json');
 
 function readPersistedState(): PersistedState {
@@ -53,10 +53,10 @@ function readPersistedState(): PersistedState {
     if (fs.existsSync(STATE_FILE)) {
       const raw = fs.readFileSync(STATE_FILE, 'utf8');
       const parsed = JSON.parse(raw);
-      return { volumes: parsed.volumes ?? {}, plays: parsed.plays ?? {} } as PersistedState;
+      return { volumes: parsed.volumes ?? {}, plays: parsed.plays ?? {}, totalPlays: parsed.totalPlays ?? 0 } as PersistedState;
     }
   } catch {}
-  return { volumes: {}, plays: {} };
+  return { volumes: {}, plays: {}, totalPlays: 0 };
 }
 
 function writePersistedState(state: PersistedState): void {
@@ -77,6 +77,7 @@ function incrementPlaysFor(relativePath: string) {
   try {
     const key = relativePath.replace(/\\/g, '/');
     persistedState.plays[key] = (persistedState.plays[key] ?? 0) + 1;
+    persistedState.totalPlays = (persistedState.totalPlays ?? 0) + 1;
     writePersistedState(persistedState);
   } catch {}
 }
@@ -315,7 +316,7 @@ app.use(express.json());
 app.use(cors());
 
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({ ok: true });
+  res.json({ ok: true, totalPlays: persistedState.totalPlays ?? 0 });
 });
 
 // --- Admin Auth ---

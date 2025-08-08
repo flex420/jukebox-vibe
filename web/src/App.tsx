@@ -24,6 +24,7 @@ export default function App() {
   const [selectedSet, setSelectedSet] = useState<Record<string, boolean>>({});
   const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
   const [clock, setClock] = useState<string>(() => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }).format(new Date()));
+  const [totalPlays, setTotalPlays] = useState<number>(0);
   const [mediaUrl, setMediaUrl] = useState<string>('');
 
   useEffect(() => {
@@ -41,6 +42,10 @@ export default function App() {
         setError(e?.message || 'Fehler beim Laden der Channels');
       }
       try { setIsAdmin(await adminStatus()); } catch {}
+      try {
+        const h = await fetch('/api/health').then(r => r.json()).catch(() => null);
+        if (h && typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
+      } catch {}
     })();
   }, []);
 
@@ -140,6 +145,7 @@ export default function App() {
         </div>
         <div style={{ display:'flex', gap:12, alignItems:'center' }}>
           <div className="badge">Geladene Sounds: {total}</div>
+          <div className="badge">Gesamt abgespielt: {totalPlays}</div>
           <button type="button" className="tab" style={{ background:'#b91c1c', borderColor:'transparent', color:'#fff' }} onClick={async () => {
             if (!selected) return;
             const [guildId] = selected.split(':');
