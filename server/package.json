@@ -19,9 +19,7 @@
     "sodium-native": "^4.0.8",
     "cors": "^2.8.5",
     "multer": "^2.0.0",
-    "ws": "^8.18.0",
-    "ytdl-core": "^4.11.5",
-    "youtube-dl-exec": "^2.4.8"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
