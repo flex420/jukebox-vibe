@@ -22,6 +22,7 @@ import {
 import sodium from 'libsodium-wrappers';
 import nacl from 'tweetnacl';
 // Streaming externer Plattformen entfernt – nur MP3-URLs werden noch unterstützt
+import child_process from 'node:child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,7 +45,7 @@ if (!DISCORD_TOKEN) {
 fs.mkdirSync(SOUNDS_DIR, { recursive: true });
 
 // Persistente Lautstärke pro Guild speichern
-type PersistedState = { volumes: Record<string, number> };
+type PersistedState = { volumes: Record<string, number>; plays: Record<string, number> };
 const STATE_FILE = path.join(path.resolve(SOUNDS_DIR, '..'), 'state.json');
 
 function readPersistedState(): PersistedState {
@@ -52,10 +53,10 @@ function readPersistedState(): PersistedState {
     if (fs.existsSync(STATE_FILE)) {
       const raw = fs.readFileSync(STATE_FILE, 'utf8');
       const parsed = JSON.parse(raw);
-      return { volumes: parsed.volumes ?? {} } as PersistedState;
+      return { volumes: parsed.volumes ?? {}, plays: parsed.plays ?? {} } as PersistedState;
     }
   } catch {}
-  return { volumes: {} };
+  return { volumes: {}, plays: {} };
 }
 
 function writePersistedState(state: PersistedState): void {
@@ -72,6 +73,19 @@ const getPersistedVolume = (guildId: string): number => {
   const v = persistedState.volumes[guildId];
   return typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1;
 };
+function incrementPlaysFor(relativePath: string) {
+  try {
+    const key = relativePath.replace(/\\/g, '/');
+    persistedState.plays[key] = (persistedState.plays[key] ?? 0) + 1;
+    writePersistedState(persistedState);
+  } catch {}
+}
+
+// Normalisierung (ffmpeg loudnorm) Konfiguration
+const NORMALIZE_ENABLE = String(process.env.NORMALIZE_ENABLE ?? 'true').toLowerCase() !== 'false';
+const NORMALIZE_I = String(process.env.NORMALIZE_I ?? '-16');
+const NORMALIZE_LRA = String(process.env.NORMALIZE_LRA ?? '11');
+const NORMALIZE_TP = String(process.env.NORMALIZE_TP ?? '-1.5');
 
 // --- Voice Abhängigkeiten prüfen ---
 await sodium.ready;
@@ -98,7 +112,7 @@ type GuildAudioState = {
 };
 const guildAudioState = new Map<string, GuildAudioState>();
 
-async function playFilePath(guildId: string, channelId: string, filePath: string, volume?: number): Promise<void> {
+async function playFilePath(guildId: string, channelId: string, filePath: string, volume?: number, relativeKey?: string): Promise<void> {
   const guild = client.guilds.cache.get(guildId);
   if (!guild) throw new Error('Guild nicht gefunden');
   let state = guildAudioState.get(guildId);
@@ -120,12 +134,22 @@ async function playFilePath(guildId: string, channelId: string, filePath: string
   const useVolume = typeof volume === 'number' && Number.isFinite(volume)
     ? Math.max(0, Math.min(1, volume))
     : (state.currentVolume ?? 1);
-  const resource = createAudioResource(filePath, { inlineVolume: true });
+  let resource: AudioResource;
+  if (NORMALIZE_ENABLE) {
+    const ffArgs = ['-hide_banner', '-loglevel', 'error', '-i', filePath,
+      '-af', `loudnorm=I=${NORMALIZE_I}:LRA=${NORMALIZE_LRA}:TP=${NORMALIZE_TP}`,
+      '-f', 's16le', '-ar', '48000', '-ac', '2', 'pipe:1'];
+    const ff = child_process.spawn('ffmpeg', ffArgs);
+    resource = createAudioResource(ff.stdout as any, { inlineVolume: true, inputType: StreamType.Raw });
+  } else {
+    resource = createAudioResource(filePath, { inlineVolume: true });
+  }
   if (resource.volume) resource.volume.setVolume(useVolume);
   state.player.stop();
   state.player.play(resource);
   state.currentResource = resource;
   state.currentVolume = useVolume;
+  if (relativeKey) incrementPlaysFor(relativeKey);
 }
 
 async function handleCommand(message: Message, content: string) {
@@ -404,13 +428,31 @@ app.get('/api/sounds', (req: Request, res: Response) => {
 
   const total = allItems.length;
   const recentCount = Math.min(10, total);
+  // Nerdinfos: Top 3 meistgespielte
+  const playsEntries = Object.entries(persistedState.plays || {});
+  const top3 = playsEntries
+    .sort((a, b) => (b[1] as number) - (a[1] as number))
+    .slice(0, 3)
+    .map(([rel, count]) => {
+      const it = allItems.find(i => (i.relativePath === rel || i.fileName === rel));
+      return it ? { key: `__top__:${rel}`, name: `${it.name} (${count})`, count: 1 } : null;
+    })
+    .filter(Boolean) as Array<{ key: string; name: string; count: number }>;
+
   const foldersOut = [
     { key: '__all__', name: 'Alle', count: total },
     { key: '__recent__', name: 'Neu', count: recentCount },
+    ...(top3.length ? [{ key: '__top3__', name: 'Most Played (3)', count: top3.length }] : []),
     ...folders
   ];
   // isRecent-Flag für UI (Top 5 der neuesten)
-  const withRecentFlag = filteredItems.map((it) => ({
+  let result = filteredItems;
+  if (folderFilter === '__top3__') {
+    const keys = new Set(top3.map(t => t.key.split(':')[1]));
+    result = allItems.filter(i => keys.has(i.relativePath ?? i.fileName));
+  }
+
+  const withRecentFlag = result.map((it) => ({
     ...it,
     isRecent: recentTop5Set.has(it.relativePath ?? it.fileName)
   }));
@@ -595,6 +637,8 @@ app.post('/api/play', async (req: Request, res: Response) => {
     persistedState.volumes[guildId] = volumeToUse;
     writePersistedState(persistedState);
     console.log(`${new Date().toISOString()} | player.play() called for ${soundName}`);
+    // Plays zählen (relativer Key verfügbar?)
+    if (relativePath) incrementPlaysFor(relativePath);
     return res.json({ ok: true });
   } catch (err: any) {
     console.error('Play-Fehler:', err);
@@ -684,7 +728,7 @@ app.post('/api/play-url', async (req: Request, res: Response) => {
       const buf = Buffer.from(await r.arrayBuffer());
       fs.writeFileSync(dest, buf);
       try {
-        await playFilePath(guildId, channelId, dest, volume);
+        await playFilePath(guildId, channelId, dest, volume, path.basename(dest));
       } catch {
         return res.status(500).json({ error: 'Abspielen fehlgeschlagen' });
       }
