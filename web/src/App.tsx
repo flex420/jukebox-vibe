@@ -211,8 +211,7 @@ export default function App() {
               <div className="relative flex-grow">
                                  <select className="input-field appearance-none pl-10" value={theme} onChange={(e)=>setTheme(e.target.value)}>
                    <option value="dark">Dark</option>
-                   <option value="rainbow">Rainbow Chaos</option>
-                   <option value="light">Light</option>
+                   <option value="rainbow">Rainbow</option>
                    <option value="420">420 Theme</option>
                  </select>
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>palette</span>
