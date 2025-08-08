@@ -277,7 +277,7 @@ export default function App() {
                   <span className="badge">Ausgewählt: {selectedCount}</span>
                   {selectedCount > 0 && (
                     <button
-                      className="tab"
+                      className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
                       onClick={async ()=>{
                         try {
                           const toDelete = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
@@ -304,7 +304,7 @@ export default function App() {
                     }} />
                   )}
                   <div className="flex-1" />
-                  <button className="tab" onClick={async ()=>{ try{ await adminLogout(); setIsAdmin(false); clearSelection(); } catch{} }}>Logout</button>
+                  <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async ()=>{ try{ await adminLogout(); setIsAdmin(false); clearSelection(); } catch{} }}>Logout</button>
                 </div>
               )}
             </div>
@@ -464,7 +464,7 @@ function RenameInline({ onSubmit }: RenameInlineProps) {
          onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
          style={{ color: '#000000' }}
        />
-      <button type="button" className="tab" onClick={() => void submit()}>Umbenennen</button>
+      <button type="button" className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={() => void submit()}>Umbenennen</button>
     </div>
   );
 }
