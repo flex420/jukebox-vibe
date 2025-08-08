@@ -164,13 +164,15 @@ async function handleCommand(message: Message, content: string) {
     await reply(
       'Available commands\n' +
       '?help - zeigt diese Hilfe\n' +
-      '?list - listet alle mp3-Dateien\n' +
+      '?list - listet alle Audio-Dateien (mp3/wav)\n' +
       '?restart - startet den Container neu (Bestätigung erforderlich)\n'
     );
     return;
   }
   if (cmd === '?list') {
-    const files = fs.readdirSync(SOUNDS_DIR).filter(f => f.toLowerCase().endsWith('.mp3'));
+    const files = fs
+      .readdirSync(SOUNDS_DIR)
+      .filter(f => { const l = f.toLowerCase(); return l.endsWith('.mp3') || l.endsWith('.wav'); });
     await reply(files.length ? files.join('\n') : 'Keine Dateien gefunden.');
     return;
   }
@@ -281,15 +283,15 @@ client.on(Events.MessageCreate, async (message: Message) => {
     if (message.attachments.size === 0) return;
 
     for (const [, attachment] of message.attachments) {
-      const name = attachment.name ?? 'upload.mp3';
+      const name = attachment.name ?? 'upload';
       const lower = name.toLowerCase();
-      if (!lower.endsWith('.mp3')) continue;
+      if (!(lower.endsWith('.mp3') || lower.endsWith('.wav'))) continue;
 
       const safeName = name.replace(/[^a-zA-Z0-9_.-]/g, '_');
       let targetPath = path.join(SOUNDS_DIR, safeName);
       if (fs.existsSync(targetPath)) {
         const base = path.parse(safeName).name;
-        const ext = path.parse(safeName).ext || '.mp3';
+        const ext = path.parse(safeName).ext || (lower.endsWith('.wav') ? '.wav' : '.mp3');
         let i = 2;
         while (fs.existsSync(targetPath)) {
           targetPath = path.join(SOUNDS_DIR, `${base}-${i}${ext}`);
@@ -383,7 +385,11 @@ app.get('/api/sounds', (req: Request, res: Response) => {
 
   const rootEntries = fs.readdirSync(SOUNDS_DIR, { withFileTypes: true });
   const rootFiles = rootEntries
-    .filter((d) => d.isFile() && d.name.toLowerCase().endsWith('.mp3'))
+    .filter((d) => {
+      if (!d.isFile()) return false;
+      const n = d.name.toLowerCase();
+      return n.endsWith('.mp3') || n.endsWith('.wav');
+    })
     .map((d) => ({ fileName: d.name, name: path.parse(d.name).name, folder: '', relativePath: d.name }));
 
   const folders: Array<{ key: string; name: string; count: number }> = [];
@@ -394,8 +400,12 @@ app.get('/api/sounds', (req: Request, res: Response) => {
     const folderName = dirent.name;
     const folderPath = path.join(SOUNDS_DIR, folderName);
     const entries = fs.readdirSync(folderPath, { withFileTypes: true });
-    const mp3s = entries.filter((e) => e.isFile() && e.name.toLowerCase().endsWith('.mp3'));
-    for (const f of mp3s) {
+    const audios = entries.filter((e) => {
+      if (!e.isFile()) return false;
+      const n = e.name.toLowerCase();
+      return n.endsWith('.mp3') || n.endsWith('.wav');
+    });
+    for (const f of audios) {
       folderItems.push({
         fileName: f.name,
         name: path.parse(f.name).name,
@@ -403,7 +413,7 @@ app.get('/api/sounds', (req: Request, res: Response) => {
         relativePath: path.join(folderName, f.name)
       });
     }
-    folders.push({ key: folderName, name: folderName, count: mp3s.length });
+    folders.push({ key: folderName, name: folderName, count: audios.length });
   }
 
   const allItems = [...rootFiles, ...folderItems].sort((a, b) => a.name.localeCompare(b.name));
@@ -533,8 +543,16 @@ app.post('/api/play', async (req: Request, res: Response) => {
 
     let filePath: string;
     if (relativePath) filePath = path.join(SOUNDS_DIR, relativePath);
-    else if (folder) filePath = path.join(SOUNDS_DIR, folder, `${soundName}.mp3`);
-    else filePath = path.join(SOUNDS_DIR, `${soundName}.mp3`);
+    else if (folder) {
+      // Bevorzugt .mp3, fallback .wav
+      const mp3 = path.join(SOUNDS_DIR, folder, `${soundName}.mp3`);
+      const wav = path.join(SOUNDS_DIR, folder, `${soundName}.wav`);
+      filePath = fs.existsSync(mp3) ? mp3 : wav;
+    } else {
+      const mp3 = path.join(SOUNDS_DIR, `${soundName}.mp3`);
+      const wav = path.join(SOUNDS_DIR, `${soundName}.wav`);
+      filePath = fs.existsSync(mp3) ? mp3 : wav;
+    }
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Sound nicht gefunden' });
 
     const guild = client.guilds.cache.get(guildId);
@@ -713,15 +731,14 @@ app.listen(PORT, () => {
 });
 
 // --- Medien-URL abspielen ---
-// Unterstützt: direkte MP3-URL (Download und Ablage)
+// Unterstützt: direkte MP3- oder WAV-URL (Download und Ablage)
 app.post('/api/play-url', async (req: Request, res: Response) => {
   try {
     const { url, guildId, channelId, volume } = req.body as { url?: string; guildId?: string; channelId?: string; volume?: number };
     if (!url || !guildId || !channelId) return res.status(400).json({ error: 'url, guildId, channelId erforderlich' });
 
-    // Nur MP3 direkt
     const lower = url.toLowerCase();
-    if (lower.endsWith('.mp3')) {
+    if (lower.endsWith('.mp3') || lower.endsWith('.wav')) {
       const fileName = path.basename(new URL(url).pathname);
       const dest = path.join(SOUNDS_DIR, fileName);
       const r = await fetch(url);
@@ -735,7 +752,7 @@ app.post('/api/play-url', async (req: Request, res: Response) => {
       }
       return res.json({ ok: true, saved: path.basename(dest) });
     }
-    return res.status(400).json({ error: 'Nur MP3-Links werden unterstützt.' });
+    return res.status(400).json({ error: 'Nur MP3- oder WAV-Links werden unterstützt.' });
   } catch (e: any) {
     console.error('play-url error:', e);
     return res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });
