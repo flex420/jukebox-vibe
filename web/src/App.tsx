@@ -22,7 +22,12 @@ export default function App() {
         setTotal(s.total);
         setFolders(s.folders);
         setChannels(c);
-        if (c[0]) setSelected(`${c[0].guildId}:${c[0].channelId}`);
+        const stored = localStorage.getItem('selectedChannel');
+        if (stored && c.find(x => `${x.guildId}:${x.channelId}` === stored)) {
+          setSelected(stored);
+        } else if (c[0]) {
+          setSelected(`${c[0].guildId}:${c[0].channelId}`);
+        }
       } catch (e: any) {
         setError(e?.message || 'Fehler beim Laden');
       }
@@ -38,6 +43,10 @@ export default function App() {
     }, 10000);
     return () => clearInterval(interval);
   }, [activeFolder]);
+
+  useEffect(() => {
+    if (selected) localStorage.setItem('selectedChannel', selected);
+  }, [selected]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -111,6 +120,7 @@ export default function App() {
             <button
               key={f.key}
               className={`tab ${activeFolder === f.key ? 'active' : ''}`}
+              type="button"
               onClick={async () => {
                 setActiveFolder(f.key);
                 const resp = await fetchSounds(query, f.key);
@@ -129,7 +139,7 @@ export default function App() {
 
       <section className="grid">
         {filtered.map((s) => (
-          <button key={`${s.fileName}-${s.name}`} className="sound" onClick={() => handlePlay(s.name, s.relativePath)} disabled={loading}>
+          <button key={`${s.fileName}-${s.name}`} className="sound" type="button" onClick={() => handlePlay(s.name, s.relativePath)} disabled={loading}>
             {s.name}
           </button>
         ))}
