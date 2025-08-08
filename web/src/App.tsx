@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl } from './api';
 import type { VoiceChannelInfo, Sound } from './types';
 import { getCookie, setCookie } from './cookies';
@@ -336,22 +337,44 @@ type SelectProps = {
 function CustomSelect({ channels, value, onChange }: SelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [menuPos, setMenuPos] = useState<{ left: number; top: number; width: number }>({ left: 0, top: 0, width: 0 });
   useEffect(() => {
     const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const el = triggerRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setMenuPos({ left: Math.round(r.left), top: Math.round(r.bottom + 6), width: Math.round(r.width) });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [open]);
+
   const current = channels.find(c => `${c.guildId}:${c.channelId}` === value);
 
   return (
     <div className="control select custom-select" ref={ref}>
-      <button type="button" className="select-trigger" onClick={() => setOpen(v => !v)}>
+      <button ref={triggerRef} type="button" className="select-trigger" onClick={() => setOpen(v => !v)}>
         {current ? `${current.guildName} – ${current.channelName}` : 'Channel wählen'}
         <span className="chev">▾</span>
       </button>
-      {open && (
-        <div className="select-menu">
+      {open && typeof document !== 'undefined' && ReactDOM.createPortal(
+        <div
+          className="select-menu"
+          style={{ position: 'fixed', left: menuPos.left, top: menuPos.top, width: menuPos.width, zIndex: 30000 }}
+        >
           {channels.map((c) => {
             const v = `${c.guildId}:${c.channelId}`;
             const active = v === value;
@@ -366,7 +389,8 @@ function CustomSelect({ channels, value, onChange }: SelectProps) {
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
