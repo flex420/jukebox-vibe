@@ -98,6 +98,36 @@ type GuildAudioState = {
 };
 const guildAudioState = new Map<string, GuildAudioState>();
 
+async function playFilePath(guildId: string, channelId: string, filePath: string, volume?: number): Promise<void> {
+  const guild = client.guilds.cache.get(guildId);
+  if (!guild) throw new Error('Guild nicht gefunden');
+  let state = guildAudioState.get(guildId);
+  if (!state) {
+    const connection = joinVoiceChannel({
+      channelId,
+      guildId,
+      adapterCreator: guild.voiceAdapterCreator as any,
+      selfMute: false,
+      selfDeaf: false
+    });
+    const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
+    connection.subscribe(player);
+    state = { connection, player, guildId, channelId, currentVolume: getPersistedVolume(guildId) };
+    guildAudioState.set(guildId, state);
+    state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
+    attachVoiceLifecycle(state, guild);
+  }
+  const useVolume = typeof volume === 'number' && Number.isFinite(volume)
+    ? Math.max(0, Math.min(1, volume))
+    : (state.currentVolume ?? 1);
+  const resource = createAudioResource(filePath, { inlineVolume: true });
+  if (resource.volume) resource.volume.setVolume(useVolume);
+  state.player.stop();
+  state.player.play(resource);
+  state.currentResource = resource;
+  state.currentVolume = useVolume;
+}
+
 async function ensureConnectionReady(connection: VoiceConnection, channelId: string, guildId: string, guild: any): Promise<VoiceConnection> {
   try {
     await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
@@ -568,6 +598,20 @@ app.get('/api/volume', (req: Request, res: Response) => {
   return res.json({ volume: v });
 });
 
+// Panik: Stoppe aktuelle Wiedergabe sofort
+app.post('/api/stop', (req: Request, res: Response) => {
+  try {
+    const guildId = String((req.query.guildId || (req.body as any)?.guildId) ?? '');
+    if (!guildId) return res.status(400).json({ error: 'guildId erforderlich' });
+    const state = guildAudioState.get(guildId);
+    if (!state) return res.status(404).json({ error: 'Kein aktiver Player' });
+    state.player.stop(true);
+    return res.json({ ok: true });
+  } catch (e: any) {
+    return res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });
+  }
+});
+
 // Static Frontend ausliefern (Vite build)
 const webDistPath = path.resolve(__dirname, '../../web/dist');
 if (fs.existsSync(webDistPath)) {
@@ -597,9 +641,12 @@ app.post('/api/play-url', async (req: Request, res: Response) => {
       if (!r.ok) return res.status(400).json({ error: 'Download fehlgeschlagen' });
       const buf = Buffer.from(await r.arrayBuffer());
       fs.writeFileSync(dest, buf);
-      // sofort abspielen
-      req.body = { soundName: path.parse(fileName).name, guildId, channelId, volume, relativePath: fileName } as any;
-      return (app._router as any).handle({ ...req, method: 'POST', url: '/api/play' }, res, () => {});
+      try {
+        await playFilePath(guildId, channelId, dest, volume);
+      } catch {
+        return res.status(500).json({ error: 'Abspielen fehlgeschlagen' });
+      }
+      return res.json({ ok: true, saved: path.basename(dest) });
     }
     return res.status(400).json({ error: 'Nur MP3-Links werden unterstützt.' });
   } catch (e: any) {

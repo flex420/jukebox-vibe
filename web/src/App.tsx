@@ -14,6 +14,7 @@ export default function App() {
   const [selected, setSelected] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [volume, setVolume] = useState<number>(1);
   const [favs, setFavs] = useState<Record<string, boolean>>({});
   const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'dark');
@@ -128,7 +129,14 @@ export default function App() {
           <h1>Einmal mit Soundboard -Profis</h1>
           <div className="clock">{clock}</div>
         </div>
-        <div className="badge">Geladene Sounds: {total}</div>
+        <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+          <div className="badge">Geladene Sounds: {total}</div>
+          <button type="button" className="tab" style={{ background:'#b91c1c', borderColor:'transparent', color:'#fff' }} onClick={async () => {
+            if (!selected) return;
+            const [guildId] = selected.split(':');
+            try { await fetch(`/api/stop?guildId=${encodeURIComponent(guildId)}`, { method:'POST' }); } catch {}
+          }}>Panik</button>
+        </div>
         {isAdmin && (
           <div className="badge">Admin-Modus</div>
         )}
@@ -192,10 +200,10 @@ export default function App() {
             placeholder="MP3 URL..."
           />
           <button type="button" className="tab" onClick={async () => {
-            if (!selected) { setError('Bitte Voice-Channel wählen'); return; }
+            if (!selected) { setError('Bitte Voice-Channel wählen'); setInfo(null); return; }
             const [guildId, channelId] = selected.split(':');
-            try { await playUrl(mediaUrl, guildId, channelId, volume); }
-            catch (e: any) { setError(e?.message || 'Play-URL fehlgeschlagen'); }
+            try { await playUrl(mediaUrl, guildId, channelId, volume); setError(null); setInfo('MP3 heruntergeladen und abgespielt.'); }
+            catch (e: any) { setInfo(null); setError(e?.message || 'Download fehlgeschlagen'); }
           }}>⬇ Download</button>
         </div>
       </section>
@@ -279,6 +287,7 @@ export default function App() {
       )}
 
       {error && <div className="error">{error}</div>}
+      {info && <div className="badge" style={{ background:'rgba(34,197,94,.18)', borderColor:'rgba(34,197,94,.35)' }}>{info}</div>}
 
       <section className="grid">
         {(activeFolder === '__favs__' ? filtered.filter((s) => !!favs[s.relativePath ?? s.fileName]) : filtered).map((s) => {
