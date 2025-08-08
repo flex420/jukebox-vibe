@@ -145,21 +145,28 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="container mx-auto">
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-          <div>
-            <h1 className="text-4xl sm:text-5xl font-black gradient-text">Soundboard Profis</h1>
-            <p className="text-6xl sm:text-8xl font-bold mt-1" style={{color:'var(--text-primary)'}}>{clock}</p>
-          </div>
-          <div className="flex items-center space-x-3 mt-4 sm:mt-0">
-            <div className="text-right">
-              <span className="text-sm block" style={{color:'var(--text-secondary)'}}>Geladene Sounds</span>
-              <span className="text-xl font-bold" style={{color:'var(--text-primary)'}}>{total}</span>
-              <span className="text-xs block" style={{color:'var(--text-secondary)'}}>Gesamt abgespielt: {totalPlays}</span>
+        <header className="flex items-center justify-between p-6">
+          <div className="flex items-center">
+            <div>
+              <h1 className="text-4xl font-bold">Soundboard Profis</h1>
+              <p className="text-7xl font-bold mt-2">{clock}</p>
             </div>
-            <button className="bg-[var(--accent-blue)] text-white hover:bg-opacity-90 font-semibold py-2 px-5 rounded-full transition-all" onClick={async () => {
-              try { const res = await fetch('/api/sounds'); const data = await res.json(); const items = data?.items || []; if (!items.length || !selected) return; const rnd = items[Math.floor(Math.random()*items.length)]; const [guildId, channelId] = selected.split(':'); await playSound(rnd.name, guildId, channelId, volume, rnd.relativePath);} catch {}
-            }}>Random</button>
-            <button className="bg-red-600 text-white hover:bg-red-700 font-semibold py-2 px-5 rounded-full transition-all" onClick={async () => { if (!selected) return; const [guildId] = selected.split(':'); await fetch(`/api/stop?guildId=${encodeURIComponent(guildId)}`, { method:'POST' }); }}>Panik</button>
+          </div>
+          <div className="flex items-center space-x-8">
+            <div className="text-center">
+              <p className="text-lg text-gray-400">Geladene Sounds</p>
+              <p className="text-2xl font-bold">{total}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg text-gray-400">Insgesamt abgespielt</p>
+              <p className="text-2xl font-bold">{totalPlays}</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => {
+                try { const res = await fetch('/api/sounds'); const data = await res.json(); const items = data?.items || []; if (!items.length || !selected) return; const rnd = items[Math.floor(Math.random()*items.length)]; const [guildId, channelId] = selected.split(':'); await playSound(rnd.name, guildId, channelId, volume, rnd.relativePath);} catch {}
+              }}>Random</button>
+              <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => { if (!selected) return; const [guildId] = selected.split(':'); await fetch(`/api/stop?guildId=${encodeURIComponent(guildId)}`, { method:'POST' }); }}>Panik</button>
+            </div>
           </div>
         </header>
 
