@@ -148,7 +148,7 @@ export default function App() {
         <header className="flex items-center justify-between p-6">
           <div className="flex items-center">
             <div>
-              <h1 className="text-4xl font-bold">Soundboard Profis</h1>
+              <h1 className="text-4xl font-bold">Jukebox 420</h1>
               <p className="text-7xl font-bold mt-2">{clock}</p>
             </div>
           </div>
@@ -209,11 +209,12 @@ export default function App() {
             </div>
             <div className="flex items-center space-x-3 lg:col-span-2">
               <div className="relative flex-grow">
-                <select className="input-field appearance-none pl-10" value={theme} onChange={(e)=>setTheme(e.target.value)}>
-                  <option value="dark">Dark</option>
-                  <option value="rainbow">Rainbow Chaos</option>
-                  <option value="light">Light</option>
-                </select>
+                                 <select className="input-field appearance-none pl-10" value={theme} onChange={(e)=>setTheme(e.target.value)}>
+                   <option value="dark">Dark</option>
+                   <option value="rainbow">Rainbow Chaos</option>
+                   <option value="light">Light</option>
+                   <option value="420">420 Theme</option>
+                 </select>
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>palette</span>
                 <span className="material-icons absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{color:'var(--text-secondary)'}}>unfold_more</span>
               </div>
