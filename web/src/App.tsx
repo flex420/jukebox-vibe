@@ -137,234 +137,106 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-    <div className="container">
-      <header>
-        <div className="header-row">
-          <h1>Einmal mit Soundboard -Profis</h1>
-          <div className="clock">{clock}</div>
-        </div>
-        <div style={{ display:'flex', gap:12, alignItems:'center' }}>
-          <div className="badge">Geladene Sounds: {total}</div>
-          <div className="badge">Gesamt abgespielt: {totalPlays}</div>
-          <button type="button" className="tab" style={{ background:'#b91c1c', borderColor:'transparent', color:'#fff' }} onClick={async () => {
-            if (!selected) return;
-            const [guildId] = selected.split(':');
-            try { await fetch(`/api/stop?guildId=${encodeURIComponent(guildId)}`, { method:'POST' }); } catch {}
-          }}>Panik</button>
-          <button type="button" className="tab" onClick={async () => {
-            try {
-              const res = await fetch('/api/sounds');
-              const data = await res.json();
-              const items = data?.items || [];
-              if (!items.length || !selected) return;
-              const rnd = items[Math.floor(Math.random() * items.length)];
-              const [guildId, channelId] = selected.split(':');
-              await playSound(rnd.name, guildId, channelId, volume, rnd.relativePath);
-            } catch {}
-          }}>Random</button>
-        </div>
-        {isAdmin && (
-          <div className="badge">Admin-Modus</div>
-        )}
-      </header>
-
-      <section className="controls glass row1">
-        <div className="control search">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Nach Sounds suchen..."
-            aria-label="Suche"
-          />
-        </div>
-        <CustomSelect
-          channels={channels}
-          value={selected}
-          onChange={setSelected}
-        />
-        <div className="control volume">
-          <label>🔊 {Math.round(volume * 100)}%</label>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={volume}
-            onChange={async (e) => {
-              const v = parseFloat(e.target.value);
-              setVolume(v);
-              if (selected) {
-                const [guildId] = selected.split(':');
-                try { await setVolumeLive(guildId, v); } catch {}
-              }
-            }}
-            aria-label="Lautstärke"
-          />
-        </div>
-        <div className="control theme">
-          <select value={theme} onChange={(e) => setTheme(e.target.value)} aria-label="Theme">
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-            <option value="rainbow">Rainbow Chaos</option>
-          </select>
-        </div>
-      </section>
-
-      <section className="controls glass row2">
-        <div className="control" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
-          <input
-            value={mediaUrl}
-            onChange={(e) => setMediaUrl(e.target.value)}
-            onKeyDown={async (e) => {
-              if (e.key === 'Enter') {
-                if (!selected) { setError('Bitte Voice-Channel wählen'); return; }
-                const [guildId, channelId] = selected.split(':');
-                try { await playUrl(mediaUrl, guildId, channelId, volume); }
-                catch (err: any) { setError(err?.message || 'Play-URL fehlgeschlagen'); }
-              }
-            }}
-            placeholder="MP3 URL..."
-          />
-          <button type="button" className="tab" onClick={async () => {
-            if (!selected) { setError('Bitte Voice-Channel wählen'); setInfo(null); return; }
-            const [guildId, channelId] = selected.split(':');
-            try { await playUrl(mediaUrl, guildId, channelId, volume); setError(null); setInfo('MP3 heruntergeladen und abgespielt.'); }
-            catch (e: any) { setInfo(null); setError(e?.message || 'Download fehlgeschlagen'); }
-          }}>⬇ Download</button>
-        </div>
-      </section>
-
-      {!isAdmin && (
-        <section className="controls glass row3">
-          <div className="control" style={{ width: 280 }}>
-            <input type="password" value={adminPwd} onChange={(e) => setAdminPwd(e.target.value)} placeholder="Admin Passwort" />
+      <div className="container mx-auto">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+          <div>
+            <h1 className="text-4xl sm:text-5xl font-black gradient-text">Soundboard Profis</h1>
+            <p className="text-6xl sm:text-8xl font-bold mt-1" style={{color:'var(--text-primary)'}}>{clock}</p>
           </div>
-          <div className="control" style={{ width: 120 }}>
-            <button type="button" className="tab" style={{ width: '100%' }} onClick={async () => {
-              const ok = await adminLogin(adminPwd);
-              if (ok) { setIsAdmin(true); setAdminPwd(''); }
-              else alert('Login fehlgeschlagen');
-            }}>Login</button>
+          <div className="flex items-center space-x-3 mt-4 sm:mt-0">
+            <div className="text-right">
+              <span className="text-sm block" style={{color:'var(--text-secondary)'}}>Geladene Sounds</span>
+              <span className="text-xl font-bold" style={{color:'var(--text-primary)'}}>{total}</span>
+              <span className="text-xs block" style={{color:'var(--text-secondary)'}}>Gesamt abgespielt: {totalPlays}</span>
+            </div>
+            <button className="bg-[var(--accent-blue)] text-white hover:bg-opacity-90 font-semibold py-2 px-5 rounded-full transition-all" onClick={async () => {
+              try { const res = await fetch('/api/sounds'); const data = await res.json(); const items = data?.items || []; if (!items.length || !selected) return; const rnd = items[Math.floor(Math.random()*items.length)]; const [guildId, channelId] = selected.split(':'); await playSound(rnd.name, guildId, channelId, volume, rnd.relativePath);} catch {}
+            }}>Random</button>
+            <button className="bg-red-600 text-white hover:bg-red-700 font-semibold py-2 px-5 rounded-full transition-all" onClick={async () => { if (!selected) return; const [guildId] = selected.split(':'); await fetch(`/api/stop?guildId=${encodeURIComponent(guildId)}`, { method:'POST' }); }}>Panik</button>
           </div>
-        </section>
-      )}
+        </header>
 
-      {/* Admin Toolbar */}
-      {isAdmin && (
-        <section className="controls glass" style={{ marginTop: -8 }}>
-          <div className="control" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button type="button" className="tab" onClick={async () => {
-              const toDelete = Object.entries(selectedSet).filter(([, v]) => v).map(([k]) => k);
-              if (toDelete.length === 0) return;
-              if (!confirm(`Wirklich ${toDelete.length} Datei(en) löschen?`)) return;
-              try { await adminDelete(toDelete); } catch (e: any) { alert(e?.message || 'Löschen fehlgeschlagen'); }
-              // refresh
-              const folderParam = activeFolder === '__favs__' ? '__all__' : activeFolder;
-              const s = await fetchSounds(query, folderParam);
-              setSounds(s.items);
-              setTotal(s.total);
-              setFolders(s.folders);
-              setSelectedSet({});
-            }}>🗑️ Löschen</button>
-            {selectedCount === 1 && (
-              <RenameInline onSubmit={async (newName) => {
-                const from = Object.keys(selectedSet).find((k) => selectedSet[k]);
-                if (!from) return;
-                try { await adminRename(from, newName); } catch (e: any) { alert(e?.message || 'Umbenennen fehlgeschlagen'); return; }
-                const folderParam = activeFolder === '__favs__' ? '__all__' : activeFolder;
-                const s = await fetchSounds(query, folderParam);
-                setSounds(s.items);
-                setTotal(s.total);
-                setFolders(s.folders);
-                setSelectedSet({});
-              }} />
-            )}
-            <button type="button" className="tab" onClick={async () => { await adminLogout(); setIsAdmin(false); }}>Logout</button>
-          </div>
-        </section>
-      )}
-
-      {folders.length > 0 && (
-        <nav className="tabs glass">
-          {/* Favoriten Tab */}
-          <button
-            key="__favs__"
-            className={`tab ${activeFolder === '__favs__' ? 'active' : ''}`}
-            type="button"
-            onClick={() => setActiveFolder('__favs__')}
-          >
-            Favoriten ({favCount})
-          </button>
-          {folders.map((f) => (
-            <button
-              key={f.key}
-              className={`tab ${activeFolder === f.key ? 'active' : ''}`}
-              type="button"
-              onClick={async () => {
-                setActiveFolder(f.key);
-                const resp = await fetchSounds(undefined, f.key);
-                setSounds(resp.items);
-                setTotal(resp.total);
-                setFolders(resp.folders);
-              }}
-            >
-              {f.name} ({f.count})
-            </button>
-          ))}
-        </nav>
-      )}
-
-      {error && <div className="error">{error}</div>}
-      {info && <div className="badge" style={{ background:'rgba(34,197,94,.18)', borderColor:'rgba(34,197,94,.35)' }}>{info}</div>}
-
-      <section className="grid">
-        {(activeFolder === '__favs__' ? filtered.filter((s) => !!favs[s.relativePath ?? s.fileName]) : filtered).map((s) => {
-          const key = `${s.relativePath ?? s.fileName}`;
-          const isFav = !!favs[key];
-          return (
-            <div key={`${s.fileName}-${s.name}`} className="sound-wrap row">
-              {isAdmin && (
-                <input
-                  className="row-check"
-                  type="checkbox"
-                  checked={!!selectedSet[key]}
-                  onClick={(e) => { try { e.stopPropagation(); } catch {} }}
-                  onChange={(e) => {
-                    try {
-                      setSelectedSet((prev) => ({ ...prev, [key]: e.target.checked }));
-                    } catch (err) {
-                      console.error('Checkbox change error:', err);
-                    }
-                  }}
-                />
-              )}
-              <button className="sound" type="button" onClick={(e) => { e.stopPropagation(); handlePlay(s.name, s.relativePath); }} disabled={loading}>
-                {s.isRecent ? '🆕 ' : ''}{s.name}
-              </button>
-              <button
-                className={`fav ${isFav ? 'active' : ''}`}
-                aria-label={isFav ? 'Favorit entfernen' : 'Als Favorit speichern'}
-                title={isFav ? 'Favorit entfernen' : 'Als Favorit speichern'}
-                onClick={() => setFavs((prev) => ({ ...prev, [key]: !prev[key] }))}
-              >
-                ★
+        <div className="control-panel rounded-xl p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-center">
+            <div className="relative">
+              <input className="input-field pl-10" placeholder="Nach Sounds suchen..." value={query} onChange={(e)=>setQuery(e.target.value)} />
+              <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>search</span>
+            </div>
+            <div className="relative">
+              <CustomSelect channels={channels} value={selected} onChange={setSelected} />
+              <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>folder_special</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className="material-icons" style={{color:'var(--text-secondary)'}}>volume_up</span>
+              <input className="w-full h-2 rounded-lg appearance-none cursor-pointer" style={{background:'var(--bg-tertiary)'}} type="range" min={0} max={1} step={0.01} value={volume} onChange={async (e)=>{ const v=parseFloat(e.target.value); setVolume(v); if(selected){ const [guildId]=selected.split(':'); try{ await setVolumeLive(guildId, v);}catch{} }}} />
+              <span className="text-sm font-semibold w-8 text-center" style={{color:'var(--text-secondary)'}}>{Math.round(volume*100)}%</span>
+            </div>
+            <div className="relative md:col-span-2 lg:col-span-1">
+              <input className="input-field pl-10" placeholder="MP3 URL..." value={mediaUrl} onChange={(e)=>setMediaUrl(e.target.value)} onKeyDown={async (e)=>{ if(e.key==='Enter'){ if(!selected){ setError('Bitte Voice-Channel wählen'); setInfo(null); return;} const [guildId,channelId]=selected.split(':'); try{ await playUrl(mediaUrl,guildId,channelId,volume); setError(null); setInfo('MP3 heruntergeladen und abgespielt.'); }catch(err:any){ setInfo(null); setError(err?.message||'Download fehlgeschlagen'); } } }} />
+              <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>link</span>
+              <button className="absolute right-0 top-0 h-full px-4 text-white flex items-center rounded-r-lg transition-all font-semibold" style={{background:'var(--accent-green)'}} onClick={async ()=>{ if(!selected){ setError('Bitte Voice-Channel wählen'); setInfo(null); return;} const [guildId,channelId]=selected.split(':'); try{ await playUrl(mediaUrl,guildId,channelId,volume); setError(null); setInfo('MP3 heruntergeladen und abgespielt.'); }catch(e:any){ setInfo(null); setError(e?.message||'Download fehlgeschlagen'); } }}>
+                <span className="material-icons text-sm mr-1">file_download</span>
+                Download
               </button>
             </div>
-          );
-        })}
-        {filtered.length === 0 && <div className="hint">Keine Sounds gefunden.</div>}
-      </section>
-      {/* footer counter entfällt, da oben sichtbar */}
-    </div>
+            <div className="flex items-center space-x-3 lg:col-span-2">
+              <div className="relative flex-grow">
+                <select className="input-field appearance-none pl-10" value={theme} onChange={(e)=>setTheme(e.target.value)}>
+                  <option value="system">System</option>
+                  <option value="dark">Dark</option>
+                  <option value="rainbow">Rainbow Chaos</option>
+                  <option value="light">Light</option>
+                </select>
+                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>palette</span>
+                <span className="material-icons absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{color:'var(--text-secondary)'}}>unfold_more</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6" style={{borderTop:'1px solid var(--border-color)', paddingTop:'1.5rem'}}>
+            <div className="flex items-center gap-4 justify-end">
+              {!isAdmin && (
+                <>
+                  <div className="relative w-full sm:w-auto" style={{maxWidth:'15%'}}>
+                    <input className="input-field pl-10" placeholder="Admin Passwort" type="password" value={adminPwd} onChange={(e)=>setAdminPwd(e.target.value)} />
+                    <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>lock</span>
+                  </div>
+                  <button className="bg-gray-800 text-white hover:bg-black font-semibold py-2 px-5 rounded-lg transition-all w-full sm:w-auto" style={{maxWidth:'15%'}} onClick={async ()=>{ const ok=await adminLogin(adminPwd); if(ok){ setIsAdmin(true); setAdminPwd(''); } else alert('Login fehlgeschlagen'); }}>Login</button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-transparent mb-8">
+          <div className="flex flex-wrap gap-3 text-sm">
+            <button className={`tag-btn ${activeFolder==='__favs__'?'active':''}`} onClick={()=>setActiveFolder('__favs__')}>Favoriten ({favCount})</button>
+            {folders.map(f=> (
+              <button key={f.key} className={`tag-btn ${activeFolder===f.key?'active':''}`} onClick={async ()=>{ setActiveFolder(f.key); const resp=await fetchSounds(undefined, f.key); setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders); }}>{f.name} ({f.count})</button>
+            ))}
+          </div>
+        </div>
+
+        {error && <div className="error">{error}</div>}
+        {info && <div className="badge" style={{ background:'rgba(34,197,94,.18)', borderColor:'rgba(34,197,94,.35)' }}>{info}</div>}
+
+        <main className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {(activeFolder === '__favs__' ? filtered.filter((s) => !!favs[s.relativePath ?? s.fileName]) : filtered).map((s) => {
+            const key = `${s.relativePath ?? s.fileName}`;
+            const isFav = !!favs[key];
+            return (
+              <div key={`${s.fileName}-${s.name}`} className="sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer" onClick={()=>handlePlay(s.name, s.relativePath)}>
+                <span className="text-sm font-medium truncate pr-2">{s.name}</span>
+                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button className="text-gray-400 hover:text-[var(--accent-green)]" onClick={(e)=>{e.stopPropagation(); handlePlay(s.name, s.relativePath);}}><span className="material-icons text-xl">add_circle_outline</span></button>
+                  <button className="text-gray-400 hover:text-[var(--accent-blue)]" onClick={(e)=>{e.stopPropagation(); setFavs(prev=>({ ...prev, [key]: !prev[key] }));}}><span className="material-icons text-xl">{isFav?'star':'star_border'}</span></button>
+                </div>
+              </div>
+            );
+          })}
+        </main>
+      </div>
       {showTop && (
-        <button
-          type="button"
-          className="back-to-top"
-          aria-label="Nach oben"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        >
-          ↑ Top
-        </button>
+        <button type="button" className="back-to-top" aria-label="Nach oben" onClick={()=>window.scrollTo({top:0, behavior:'smooth'})}>↑ Top</button>
       )}
     </ErrorBoundary>
   );
