@@ -89,11 +89,10 @@ header p { opacity: .8; }
 .badge { align-self: flex-start; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); padding: 6px 10px; border-radius: 999px; font-size: 13px; }
 
 .controls { display: grid; grid-template-columns: 1fr minmax(240px, 320px) 260px 200px; gap: 12px; align-items: center; margin-bottom: 12px; }
-.controls.row2 { grid-template-columns: minmax(400px, 1fr); }
-.controls.row3 { grid-template-columns: 1fr; }
-.controls.glass { padding: 18px; position: relative; z-index: 1; }
-.controls.row2 { grid-template-columns: minmax(400px, 1fr); z-index: 5; }
-.controls.row3 { grid-template-columns: 1fr; z-index: 1; }
+.controls.row1 { z-index: 5000; }
+.controls.row2 { grid-template-columns: minmax(400px, 1fr); z-index: 3000; }
+.controls.row3 { grid-template-columns: 1fr; z-index: 2000; }
+.controls.glass { padding: 18px; position: relative; z-index: inherit; overflow: visible; }
 .controls.glass {
   backdrop-filter: saturate(140%) blur(20px);
   background: linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
@@ -118,7 +117,7 @@ header p { opacity: .8; }
 .control select optgroup { background-color: #0f1530; color: #c8c8d8; }
 
 /* Custom Select */
-.custom-select { position: relative; z-index: 10; }
+.custom-select { position: relative; z-index: 10000; }
 .select-trigger {
   width: 100%;
   text-align: left;
@@ -139,7 +138,7 @@ header p { opacity: .8; }
   background: #0f1530;
   box-shadow: 0 24px 48px rgba(0,0,0,.5);
   max-height: 280px; overflow-y: auto;
-  z-index: 100;
+  z-index: 20000;
 }
 .select-item {
   width: 100%; text-align: left; padding: 10px 12px; color: #e7e7ee;
