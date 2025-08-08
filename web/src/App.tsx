@@ -121,6 +121,13 @@ export default function App() {
 
   const favCount = useMemo(() => Object.values(favs).filter(Boolean).length, [favs]);
 
+  function toggleSelect(key: string, on?: boolean) {
+    setSelectedSet((prev) => ({ ...prev, [key]: typeof on === 'boolean' ? on : !prev[key] }));
+  }
+  function clearSelection() {
+    setSelectedSet({});
+  }
+
   async function handlePlay(name: string, rel?: string) {
     setError(null);
     if (!selected) return setError('Bitte einen Voice-Channel auswählen');
@@ -206,8 +213,8 @@ export default function App() {
             </div>
           </div>
           <div className="mt-6" style={{borderTop:'1px solid var(--border-color)', paddingTop:'1.5rem'}}>
-            <div className="flex items-center gap-4 justify-end">
-              {!isAdmin && (
+            <div className="flex items-center gap-4 justify-between flex-wrap">
+              {!isAdmin ? (
                 <>
                   <div className="relative w-full sm:w-auto" style={{maxWidth:'15%'}}>
                     <input className="input-field pl-10 with-left-icon" placeholder="Admin Passwort" type="password" value={adminPwd} onChange={(e)=>setAdminPwd(e.target.value)} />
@@ -215,6 +222,40 @@ export default function App() {
                   </div>
                   <button className="bg-gray-800 text-white hover:bg-black font-semibold py-2 px-5 rounded-lg transition-all w-full sm:w-auto" style={{maxWidth:'15%'}} onClick={async ()=>{ const ok=await adminLogin(adminPwd); if(ok){ setIsAdmin(true); setAdminPwd(''); } else alert('Login fehlgeschlagen'); }}>Login</button>
                 </>
+              ) : (
+                <div className="flex items-center gap-3 w-full">
+                  <span className="badge">Ausgewählt: {selectedCount}</span>
+                  {selectedCount > 0 && (
+                    <button
+                      className="tab"
+                      onClick={async ()=>{
+                        try {
+                          const toDelete = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
+                          await adminDelete(toDelete);
+                          clearSelection();
+                          const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder);
+                          setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
+                        } catch (e:any) { setError(e?.message||'Löschen fehlgeschlagen'); }
+                      }}
+                    >
+                      Löschen
+                    </button>
+                  )}
+                  {selectedCount === 1 && (
+                    <RenameInline onSubmit={async (newName)=>{
+                      const from = Object.entries(selectedSet).find(([,v])=>v)?.[0];
+                      if(!from) return;
+                      try {
+                        await adminRename(from, newName);
+                        clearSelection();
+                        const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder);
+                        setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
+                      } catch (e:any) { setError(e?.message||'Umbenennen fehlgeschlagen'); }
+                    }} />
+                  )}
+                  <div className="flex-1" />
+                  <button className="tab" onClick={async ()=>{ try{ await adminLogout(); setIsAdmin(false); clearSelection(); } catch{} }}>Logout</button>
+                </div>
               )}
             </div>
           </div>
@@ -237,11 +278,21 @@ export default function App() {
             const key = `${s.relativePath ?? s.fileName}`;
             const isFav = !!favs[key];
             return (
-              <div key={`${s.fileName}-${s.name}`} className="sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer" onClick={()=>handlePlay(s.name, s.relativePath)}>
-                <span className="text-sm font-medium truncate pr-2">{s.name}</span>
-                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="text-gray-400 hover:text-[var(--accent-green)]" onClick={(e)=>{e.stopPropagation(); handlePlay(s.name, s.relativePath);}}><span className="material-icons text-xl">add_circle_outline</span></button>
-                  <button className="text-gray-400 hover:text-[var(--accent-blue)]" onClick={(e)=>{e.stopPropagation(); setFavs(prev=>({ ...prev, [key]: !prev[key] }));}}><span className="material-icons text-xl">{isFav?'star':'star_border'}</span></button>
+              <div key={`${s.fileName}-${s.name}`} className="sound-wrap">
+                {isAdmin && (
+                  <input
+                    type="checkbox"
+                    className="select-check"
+                    checked={!!selectedSet[key]}
+                    onChange={(e)=>{ e.stopPropagation(); toggleSelect(key, e.target.checked); }}
+                  />
+                )}
+                <div className="sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer" onClick={()=>handlePlay(s.name, s.relativePath)}>
+                  <span className="text-sm font-medium truncate pr-2">{s.name}</span>
+                  <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button className="text-gray-400 hover:text-[var(--accent-green)]" onClick={(e)=>{e.stopPropagation(); handlePlay(s.name, s.relativePath);}}><span className="material-icons text-xl">add_circle_outline</span></button>
+                    <button className="text-gray-400 hover:text-[var(--accent-blue)]" onClick={(e)=>{e.stopPropagation(); setFavs(prev=>({ ...prev, [key]: !prev[key] }));}}><span className="material-icons text-xl">{isFav?'star':'star_border'}</span></button>
+                  </div>
                 </div>
               </div>
             );
