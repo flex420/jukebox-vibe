@@ -225,5 +225,21 @@ header p { opacity: .8; }
 .tab.active { background: linear-gradient(135deg, rgba(168,85,247,.55), rgba(59,130,246,.55)); color: #fff; border-color: transparent; }
 
 
+/* Back to top */
+.back-to-top {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.25);
+  background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+  color: #e7e7ee;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  z-index: 40000;
+}
+.back-to-top:hover { filter: brightness(1.1); }
+
+
 
 

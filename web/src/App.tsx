@@ -15,6 +15,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [showTop, setShowTop] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(1);
   const [favs, setFavs] = useState<Record<string, boolean>>({});
   const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'dark');
@@ -84,6 +85,14 @@ export default function App() {
     document.body.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  // Back-to-top Sichtbarkeit
+  useEffect(() => {
+    const onScroll = () => setShowTop(window.scrollY > 300);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -328,6 +337,16 @@ export default function App() {
       </section>
       {/* footer counter entfällt, da oben sichtbar */}
     </div>
+      {showTop && (
+        <button
+          type="button"
+          className="back-to-top"
+          aria-label="Nach oben"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          ↑ Top
+        </button>
+      )}
     </ErrorBoundary>
   );
 }
