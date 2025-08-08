@@ -50,9 +50,13 @@ export default function App() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return sounds;
-    return sounds.filter((s) => s.name.toLowerCase().includes(q));
-  }, [sounds, query]);
+    let base = sounds;
+    if (activeFolder !== '__all__') {
+      base = sounds.filter((s: any) => (activeFolder === '' ? !s.folder : s.folder === activeFolder));
+    }
+    if (!q) return base;
+    return base.filter((s) => s.name.toLowerCase().includes(q));
+  }, [sounds, query, activeFolder]);
 
   async function handlePlay(name: string, rel?: string) {
     setError(null);
@@ -73,6 +77,7 @@ export default function App() {
       <header>
         <h1>Discord Soundboard</h1>
         <p>Schicke dem Bot per privater Nachricht eine .mp3 — neue Sounds erscheinen automatisch.</p>
+        <div className="badge">Geladene Sounds: {total}</div>
       </header>
 
       <section className="controls">
@@ -145,7 +150,7 @@ export default function App() {
         ))}
         {filtered.length === 0 && <div className="hint">Keine Sounds gefunden.</div>}
       </section>
-      <div className="footer-info">Geladene Sounds: {total}</div>
+      {/* footer counter entfällt, da oben sichtbar */}
     </div>
   );
 }

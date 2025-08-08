@@ -14,6 +14,7 @@ body {
 header { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
 header h1 { margin: 0; font-weight: 800; letter-spacing: .3px; }
 header p { opacity: .8; }
+.badge { align-self: flex-start; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); padding: 6px 10px; border-radius: 999px; font-size: 13px; }
 
 .controls { display: grid; grid-template-columns: 1fr minmax(240px, 300px) 220px; gap: 12px; align-items: center; margin-bottom: 18px; }
 .control input, .control select {
@@ -49,11 +50,7 @@ header p { opacity: .8; }
 
 .hint { opacity: .7; padding: 24px 0; }
 
-.footer-info {
-  margin-top: 14px;
-  opacity: .8;
-  font-size: 14px;
-}
+/* footer-info entfernt */
 
 .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 .tab {
