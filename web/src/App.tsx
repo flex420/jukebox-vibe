@@ -20,6 +20,7 @@ export default function App() {
   const [adminPwd, setAdminPwd] = useState<string>('');
   const [selectedSet, setSelectedSet] = useState<Record<string, boolean>>({});
   const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
+  const [clock, setClock] = useState<string>(() => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }).format(new Date()));
 
   useEffect(() => {
     (async () => {
@@ -37,6 +38,15 @@ export default function App() {
       }
       try { setIsAdmin(await adminStatus()); } catch {}
     })();
+  }, []);
+
+  // Uhrzeit (Berlin) aktualisieren
+  useEffect(() => {
+    const fmt = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' });
+    const update = () => setClock(fmt.format(new Date()));
+    const id = setInterval(update, 1000);
+    update();
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -111,6 +121,7 @@ export default function App() {
   return (
     <div className="container">
       <header>
+        <div className="clock">{clock}</div>
         <h1>Discord Soundboard</h1>
         <p>Schicke dem Bot per privater Nachricht eine .mp3 — neue Sounds erscheinen automatisch.</p>
         <div className="badge">Geladene Sounds: {total}</div>
