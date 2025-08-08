@@ -48,14 +48,23 @@ fs.mkdirSync(SOUNDS_DIR, { recursive: true });
 
 function buildYtDlpArgs(url: string, mode: 'stream' | 'download', outPath?: string): string[] {
   const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Mobile/15E148 Safari/604.1';
+  const host = (() => { try { return new URL(url).hostname; } catch { return 'www.youtube.com'; } })();
+  const referer = `https://${host}/`;
   const base = [
     '--no-playlist',
     '--no-warnings',
     '--geo-bypass',
     '--user-agent', ua,
-    '--referer', 'https://www.youtube.com/',
-    '--extractor-args', 'youtube:player_client=android',
+    '--referer', referer,
   ];
+  // Feintuning je nach Host
+  if (host.includes('youtube')) {
+    base.push('--extractor-args', 'youtube:player_client=android');
+  }
+  if (host.includes('instagram')) {
+    // Instagram braucht oft Login → Cookies nutzen, sonst public Reels funktionieren ggf. ohne
+    // Keine speziellen extractor-args nötig, aber Referer & UA helfen
+  }
   if (YTDLP_COOKIES_FILE) {
     base.push('--cookies', YTDLP_COOKIES_FILE);
   }
