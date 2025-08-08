@@ -26,7 +26,10 @@ ENV NODE_ENV=production
 ENV PORT=8080
 ENV SOUNDS_DIR=/data/sounds
 
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ffmpeg curl ca-certificates && rm -rf /var/lib/apt/lists/* \
+ && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
+ && chmod a+rx /usr/local/bin/yt-dlp \
+ && yt-dlp --version || true
 
 COPY --from=server-build /app/server/dist ./server/dist
 COPY --from=server-build /app/server/node_modules ./server/node_modules

@@ -625,7 +625,16 @@ app.post('/api/play-url', async (req: Request, res: Response) => {
     // Audio-Stream besorgen
     let stream: any;
     if (ytdl.validateURL(url)) {
-      stream = ytdl(url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 });
+      // Nutze ytdl-core, fallback auf yt-dlp bei HTTP Fehlern (410/403 etc.)
+      try {
+        stream = ytdl(url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 });
+        stream.on('error', (e: any) => { throw e; });
+      } catch (e) {
+        console.warn('ytdl-core fehlgeschlagen, versuche yt-dlp:', e);
+        const yt = child_process.spawn('yt-dlp', ['-f', 'bestaudio', '-o', '-', url]);
+        yt.on('error', (err) => console.error('yt-dlp spawn error:', err));
+        stream = yt.stdout;
+      }
     } else {
       // Fallback via yt-dlp, benötigt binary im Image/Host
       // wir nutzen stdout mit ffmpeg pipe
