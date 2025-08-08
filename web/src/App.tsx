@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchChannels, fetchSounds, playSound, setVolumeLive } from './api';
 import type { VoiceChannelInfo, Sound } from './types';
+import { getCookie, setCookie } from './cookies';
 
 export default function App() {
   const [sounds, setSounds] = useState<Sound[]>([]);
@@ -13,6 +14,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState<number>(1);
+  const [favs, setFavs] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     (async () => {
@@ -43,6 +45,19 @@ export default function App() {
       }
     })();
   }, [activeFolder, query]);
+
+  // Favoriten aus Cookie laden
+  useEffect(() => {
+    const c = getCookie('favs');
+    if (c) {
+      try { setFavs(JSON.parse(c)); } catch {}
+    }
+  }, []);
+
+  // Favoriten persistieren
+  useEffect(() => {
+    try { setCookie('favs', JSON.stringify(favs)); } catch {}
+  }, [favs]);
 
   useEffect(() => {
     if (selected) localStorage.setItem('selectedChannel', selected);
@@ -139,11 +154,25 @@ export default function App() {
       {error && <div className="error">{error}</div>}
 
       <section className="grid">
-        {filtered.map((s) => (
-          <button key={`${s.fileName}-${s.name}`} className="sound" type="button" onClick={() => handlePlay(s.name, s.relativePath)} disabled={loading}>
-            {s.name}
-          </button>
-        ))}
+        {filtered.map((s) => {
+          const key = `${s.relativePath ?? s.fileName}`;
+          const isFav = !!favs[key];
+          return (
+            <div key={`${s.fileName}-${s.name}`} className="sound-wrap">
+              <button className="sound" type="button" onClick={() => handlePlay(s.name, s.relativePath)} disabled={loading}>
+                {s.name}
+              </button>
+              <button
+                className={`fav ${isFav ? 'active' : ''}`}
+                aria-label={isFav ? 'Favorit entfernen' : 'Als Favorit speichern'}
+                title={isFav ? 'Favorit entfernen' : 'Als Favorit speichern'}
+                onClick={() => setFavs((prev) => ({ ...prev, [key]: !prev[key] }))}
+              >
+                ★
+              </button>
+            </div>
+          );
+        })}
         {filtered.length === 0 && <div className="hint">Keine Sounds gefunden.</div>}
       </section>
       {/* footer counter entfällt, da oben sichtbar */}
