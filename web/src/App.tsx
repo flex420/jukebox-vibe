@@ -261,10 +261,11 @@ export default function App() {
             <div key={`${s.fileName}-${s.name}`} className="sound-wrap">
               {isAdmin && (
                 <input
+                  className="select-check"
                   type="checkbox"
                   checked={!!selectedSet[key]}
+                  onClick={(e) => { e.stopPropagation(); }}
                   onChange={(e) => setSelectedSet((prev) => ({ ...prev, [key]: e.target.checked }))}
-                  style={{ position: 'absolute', left: 8, top: 8 }}
                 />
               )}
               <button className="sound" type="button" onClick={() => handlePlay(s.name, s.relativePath)} disabled={loading}>
