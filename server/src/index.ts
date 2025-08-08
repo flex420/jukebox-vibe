@@ -20,6 +20,9 @@ import {
 } from '@discordjs/voice';
 import sodium from 'libsodium-wrappers';
 import nacl from 'tweetnacl';
+import ytdl from 'ytdl-core';
+import { createRequire } from 'node:module';
+import child_process from 'node:child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -577,6 +580,58 @@ if (fs.existsSync(webDistPath)) {
 
 app.listen(PORT, () => {
   console.log(`Server läuft auf http://0.0.0.0:${PORT}`);
+});
+
+// --- Medien-URL abspielen ---
+// Unterstützt: YouTube (ytdl-core), generische URLs (yt-dlp), direkte mp3 (Download und Ablage)
+app.post('/api/play-url', async (req: Request, res: Response) => {
+  try {
+    const { url, guildId, channelId, volume } = req.body as { url?: string; guildId?: string; channelId?: string; volume?: number };
+    if (!url || !guildId || !channelId) return res.status(400).json({ error: 'url, guildId, channelId erforderlich' });
+
+    // MP3 direkt?
+    const lower = url.toLowerCase();
+    if (lower.endsWith('.mp3')) {
+      const fileName = path.basename(new URL(url).pathname);
+      const dest = path.join(SOUNDS_DIR, fileName);
+      const r = await fetch(url);
+      if (!r.ok) return res.status(400).json({ error: 'Download fehlgeschlagen' });
+      const buf = Buffer.from(await r.arrayBuffer());
+      fs.writeFileSync(dest, buf);
+      // sofort abspielen
+      req.body = { soundName: path.parse(fileName).name, guildId, channelId, volume, relativePath: fileName } as any;
+      return (app._router as any).handle({ ...req, method: 'POST', url: '/api/play' }, res, () => {});
+    }
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Guild nicht gefunden' });
+    let state = guildAudioState.get(guildId);
+    if (!state) return res.status(400).json({ error: 'Bitte zuerst einen Sound abspielen, um die Verbindung herzustellen' });
+
+    const useVolume = typeof volume === 'number' ? Math.max(0, Math.min(1, volume)) : state.currentVolume ?? 1;
+
+    // Audio-Stream besorgen
+    let stream: any;
+    if (ytdl.validateURL(url)) {
+      stream = ytdl(url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 });
+    } else {
+      // Fallback via yt-dlp, benötigt binary im Image/Host
+      // wir nutzen stdout mit ffmpeg pipe
+      const yt = child_process.spawn('yt-dlp', ['-f', 'bestaudio', '-o', '-', url]);
+      stream = yt.stdout;
+    }
+
+    const resource = createAudioResource(stream as any, { inlineVolume: true });
+    if (resource.volume) resource.volume.setVolume(useVolume);
+    state.player.stop();
+    state.player.play(resource);
+    state.currentResource = resource;
+    state.currentVolume = useVolume;
+    return res.json({ ok: true });
+  } catch (e: any) {
+    console.error('play-url error:', e);
+    return res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });
+  }
 });
 
 

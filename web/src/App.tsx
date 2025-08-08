@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl } from './api';
 import type { VoiceChannelInfo, Sound } from './types';
 import { getCookie, setCookie } from './cookies';
 
@@ -21,6 +21,7 @@ export default function App() {
   const [selectedSet, setSelectedSet] = useState<Record<string, boolean>>({});
   const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
   const [clock, setClock] = useState<string>(() => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }).format(new Date()));
+  const [mediaUrl, setMediaUrl] = useState<string>('');
 
   useEffect(() => {
     (async () => {
@@ -171,6 +172,15 @@ export default function App() {
             <option value="light">Light</option>
             <option value="rainbow">Rainbow Chaos</option>
           </select>
+        </div>
+        <div className="control" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+          <input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="YouTube/Instagram/MP3 URL..." />
+          <button type="button" className="tab" onClick={async () => {
+            if (!selected) { setError('Bitte Voice-Channel wählen'); return; }
+            const [guildId, channelId] = selected.split(':');
+            try { await playUrl(mediaUrl, guildId, channelId, volume); }
+            catch (e: any) { setError(e?.message || 'Play-URL fehlgeschlagen'); }
+          }}>▶ Abspielen</button>
         </div>
         {!isAdmin && (
           <div className="control" style={{ display: 'flex', gap: 8 }}>
