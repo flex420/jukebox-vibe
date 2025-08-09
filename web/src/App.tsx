@@ -45,7 +45,6 @@ export default function App() {
     return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codePoints}.svg`;
   }
   const [showBroccoli, setShowBroccoli] = useState<boolean>(false);
-  const [flashMap, setFlashMap] = useState<Record<string, boolean>>({});
   const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
   const [clock, setClock] = useState<string>(() => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }).format(new Date()));
   const [totalPlays, setTotalPlays] = useState<number>(0);
@@ -603,17 +602,8 @@ export default function App() {
                     onChange={(e)=>{ e.stopPropagation(); toggleSelect(key, e.target.checked); }}
                   />
                 )}
-                <div className={`sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer ${flashMap[key] ? 'rainbow-flash' : ''}`}
-                     onClick={async ()=>{
-                       // Rainbow-Flash via State, damit Re-Render die Klasse erhält
-                       if (theme === 'rainbow') {
-                         setFlashMap(prev => ({ ...prev, [key]: true }));
-                         setTimeout(() => {
-                           setFlashMap(prev => { const n = { ...prev }; delete n[key]; return n; });
-                         }, 2000);
-                       }
-                       await handlePlay(s.name, s.relativePath);
-                     }}>
+                <div className="sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer"
+                     onClick={()=>handlePlay(s.name, s.relativePath)}>
                   <span className="text-sm font-medium truncate pr-2">
                     {s.name}
                     {Array.isArray((s as any).badges) && (s as any).badges!.map((b:string, i:number)=> (
