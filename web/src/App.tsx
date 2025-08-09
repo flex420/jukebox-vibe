@@ -464,8 +464,8 @@ export default function App() {
                             setShowEmojiPicker(v=>!v);
                           }}
                         >Custom Emoji</button>
-                        {showEmojiPicker && (
-                          <div ref={emojiPickerRef as any} className="emoji-picker" style={{ position:'fixed', left: emojiPos.left, top: emojiPos.top, zIndex: 999999 }}>
+                        {showEmojiPicker && typeof document !== 'undefined' && ReactDOM.createPortal(
+                          <div ref={emojiPickerRef as any} className="emoji-picker" style={{ position:'fixed', left: emojiPos.left, top: emojiPos.top, zIndex: 300000 }}>
                             {EMOJIS.map((e, i)=> (
                               <button key={i} onClick={async ()=>{
                                 try{
@@ -478,7 +478,8 @@ export default function App() {
                                 }catch(err:any){ setError(err?.message||'Badge-Update fehlgeschlagen'); setInfo(null); }
                               }}>{e}</button>
                             ))}
-                          </div>
+                          </div>,
+                          document.body
                         )}
                       </div>
 
