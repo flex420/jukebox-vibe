@@ -177,7 +177,12 @@ export default function App() {
         <header className="flex items-center justify-between p-6">
           <div className="flex items-center">
             <div>
-              <h1 className="text-4xl font-bold">Jukebox 420</h1>
+              <h1 className="text-4xl font-bold">
+                Jukebox 420
+                {window.location.hostname.includes('localhost') && window.location.port === '3001' && (
+                  <span className="text-sm text-red-400 ml-2">Nightly</span>
+                )}
+              </h1>
               <p className="text-7xl font-bold mt-2">{clock}</p>
             </div>
           </div>
