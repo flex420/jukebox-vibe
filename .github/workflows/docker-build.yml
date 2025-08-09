@@ -39,7 +39,9 @@ jobs:
             echo "channel=nightly" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and push
+      # Nur auf main: auch :latest tag pushen
+      - name: Build and push (main)
+        if: ${{ github.ref_name == 'main' }}
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -49,6 +51,21 @@ jobs:
             VITE_APP_VERSION=${{ steps.docker_tag.outputs.version }}
           tags: |
             ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:${{ steps.docker_tag.outputs.tag }}
+          platforms: linux/amd64
+
+      # Feature-/Nightly-Branches: kein :latest Tag
+      - name: Build and push (feature branches)
+        if: ${{ github.ref_name != 'main' }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          build-args: |
+            VITE_BUILD_CHANNEL=${{ steps.docker_tag.outputs.channel }}
+            VITE_APP_VERSION=${{ steps.docker_tag.outputs.version }}
+          tags: |
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.IMAGE_NAME }}:${{ steps.docker_tag.outputs.tag }}
           platforms: linux/amd64
