@@ -237,7 +237,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="container mx-auto" data-theme={theme}>
+      <div className="page-container" data-theme={theme}>
         {/* Floating Broccoli for 420 Theme */}
         {theme === '420' && showBroccoli && (
           <>

@@ -302,6 +302,8 @@ body {
 [data-theme="dark"] .gradient-text { background: -webkit-linear-gradient(45deg,#e0e0e0,#a0a0a0); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent }
 
 .container { width: 90vw; max-width: none; margin: 0 auto; padding: 28px; }
+/* Eigener Container ohne Tailwind-Kollision */
+.page-container { width: 90vw; max-width: none; margin: 0 auto; padding: 28px; }
 
 /* Nightly Build: volle Breite (mind. 90% der Anzeige), kein max-width-Limit */
 [data-build="nightly"] .container {
