@@ -205,14 +205,14 @@ export default function App() {
     const scheduleNextPlay = async () => {
       if (!chaosModeRef.current) return;
       await playRandomSound();
-      const delay = 60_000 + Math.floor(Math.random() * 60_000); // 60-120 Sekunden
+      const delay = 30_000 + Math.floor(Math.random() * 60_000); // 30-90 Sekunden
       chaosTimeoutRef.current = window.setTimeout(scheduleNextPlay, delay);
     };
 
     // Sofort ersten Sound abspielen
     await playRandomSound();
     // Nächsten zufällig in 1-3 Minuten planen
-    const firstDelay = 60_000 + Math.floor(Math.random() * 60_000);
+    const firstDelay = 30_000 + Math.floor(Math.random() * 60_000);
     chaosTimeoutRef.current = window.setTimeout(scheduleNextPlay, firstDelay);
   };
 
