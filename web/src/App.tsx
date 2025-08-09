@@ -418,6 +418,9 @@ export default function App() {
           </div>
         </div>
 
+        {error && <div className="error mb-4">{error}</div>}
+        {info && <div className="badge mb-4" style={{ background:'rgba(34,197,94,.18)', borderColor:'rgba(34,197,94,.35)' }}>{info}</div>}
+
         <div className="bg-transparent mb-8">
           <div className="flex flex-wrap gap-3 text-sm">
             <button className={`tag-btn ${activeFolder==='__favs__'?'active':''}`} onClick={()=>setActiveFolder('__favs__')}>Favoriten ({favCount})</button>
@@ -439,9 +442,6 @@ export default function App() {
             })}
           </div>
         </div>
-
-        {error && <div className="error">{error}</div>}
-        {info && <div className="badge" style={{ background:'rgba(34,197,94,.18)', borderColor:'rgba(34,197,94,.35)' }}>{info}</div>}
 
         <main className="sounds-flow">
           {(activeFolder === '__favs__' ? filtered.filter((s) => !!favs[s.relativePath ?? s.fileName]) : filtered).map((s) => {
