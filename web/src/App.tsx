@@ -29,6 +29,8 @@ export default function App() {
   const [mediaUrl, setMediaUrl] = useState<string>('');
   const [chaosMode, setChaosMode] = useState<boolean>(false);
   const chaosTimeoutRef = useRef<number | null>(null);
+  const chaosModeRef = useRef<boolean>(false);
+  useEffect(() => { chaosModeRef.current = chaosMode; }, [chaosMode]);
 
   useEffect(() => {
     (async () => {
@@ -184,13 +186,15 @@ export default function App() {
     };
 
     const scheduleNextPlay = async () => {
-      if (!chaosMode) return;
+      if (!chaosModeRef.current) return;
       await playRandomSound();
       const delay = 60_000 + Math.floor(Math.random() * 120_000); // 1-3 Minuten
       chaosTimeoutRef.current = window.setTimeout(scheduleNextPlay, delay);
     };
 
-    // ersten Start zufällig zwischen 1-3 Minuten planen
+    // Sofort ersten Sound abspielen
+    await playRandomSound();
+    // Nächsten zufällig in 1-3 Minuten planen
     const firstDelay = 60_000 + Math.floor(Math.random() * 120_000);
     chaosTimeoutRef.current = window.setTimeout(scheduleNextPlay, firstDelay);
   };
