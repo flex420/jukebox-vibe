@@ -29,7 +29,9 @@ export default function App() {
   const [editingCategoryId, setEditingCategoryId] = useState<string>('');
   const [editingCategoryName, setEditingCategoryName] = useState<string>('');
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
+  const [showEmojiRemovePicker, setShowEmojiRemovePicker] = useState<boolean>(false);
   const emojiPickerRef = useRef<HTMLDivElement|null>(null);
+  const emojiRemovePickerRef = useRef<HTMLDivElement|null>(null);
   const EMOJIS = useMemo(()=>{
     // einfache, breite Auswahl gängiger Emojis; kann später erweitert/extern geladen werden
     const groups = [
@@ -467,6 +469,29 @@ export default function App() {
                                   const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
                                   setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
                                 }catch(err:any){ setError(err?.message||'Badge-Update fehlgeschlagen'); setInfo(null); }
+                              }}>{e}</button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ position:'relative' }}>
+                        <button
+                          className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
+                          onClick={()=> setShowEmojiRemovePicker(v=>!v)}
+                        >Badge entfernen</button>
+                        {showEmojiRemovePicker && (
+                          <div ref={emojiRemovePickerRef as any} className="emoji-picker" style={{ position:'absolute', top:'110%', right:0, zIndex: 99999 }}>
+                            {EMOJIS.map((e, i)=> (
+                              <button key={i} onClick={async ()=>{
+                                try{
+                                  const files = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
+                                  await assignBadges(files, [], [e]);
+                                  setShowEmojiRemovePicker(false);
+                                  setInfo('Badge entfernt'); setError(null);
+                                  const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
+                                  setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
+                                }catch(err:any){ setError(err?.message||'Badge-Entfernung fehlgeschlagen'); setInfo(null); }
                               }}>{e}</button>
                             ))}
                           </div>
