@@ -601,7 +601,7 @@ export default function App() {
                            const el = (e.currentTarget as HTMLDivElement | undefined);
                            if (el) {
                              el.classList.add('rainbow-flash');
-                             setTimeout(()=> el.classList.remove('rainbow-flash'), 1000);
+                             setTimeout(()=> el.classList.remove('rainbow-flash'), 2000);
                            }
                          }
                        } catch {}
