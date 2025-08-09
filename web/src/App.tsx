@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, assignBadges } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, assignBadges, updateCategory, deleteCategory } from './api';
 import type { VoiceChannelInfo, Sound, Category } from './types';
 import { getCookie, setCookie } from './cookies';
 
@@ -26,6 +26,16 @@ export default function App() {
   const [selectedSet, setSelectedSet] = useState<Record<string, boolean>>({});
   const [assignCategoryId, setAssignCategoryId] = useState<string>('');
   const [newCategoryName, setNewCategoryName] = useState<string>('');
+  const [editingCategoryId, setEditingCategoryId] = useState<string>('');
+  const [editingCategoryName, setEditingCategoryName] = useState<string>('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
+  const emojiPickerRef = useRef<HTMLDivElement|null>(null);
+  const EMOJIS = useMemo(()=>{
+    // einfache, breite Auswahl gängiger Emojis; kann später erweitert/extern geladen werden
+    const groups = [
+      '😀😁😂🤣😅😊🙂😉😍😘😜🤪🤗🤔🤩🥳😎😴🤤','😇🥰🥺😡🤬😱😭🙈🙉🙊💀👻🤖🎃','👍👎👏🙌🙏🤝💪🔥✨💥🎉🎊','❤️🧡💛💚💙💜🖤🤍🤎💖💘💝','⭐🌟🌈☀️🌙⚡❄️☔🌊🍀','🎵🎶🎧🎤🎸🥁🎹🎺🎻','🍕🍔🍟🌭🌮🍣🍺🍻🍷🥂','🐶🐱🐼🐸🦄🐧🐢🦖🐙','🚀🛸✈️🚁🚗🏎️🚓🚒','🏆🥇🥈🥉🎯🎮🎲🧩']
+    return groups.join('').split('');
+  }, []);
   const [showBroccoli, setShowBroccoli] = useState<boolean>(false);
   const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
   const [clock, setClock] = useState<string>(() => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }).format(new Date()));
@@ -439,26 +449,35 @@ export default function App() {
                         }}
                       >Zu Kategorie</button>
 
-                      {/* Custom Badge setzen */}
-                      <button
-                        className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
-                        onClick={async ()=>{
-                          try{
-                            const files = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
-                            // Beispiel: Herz-Emoji als Badge; später UI-Eingabe möglich
-                            await assignBadges(files, ['❤'], []);
-                            setInfo('Badge gesetzt'); setError(null);
-                            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
-                            setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
-                          }catch(e:any){ setError(e?.message||'Badge-Update fehlgeschlagen'); setInfo(null); }
-                        }}
-                      >Badge ❤</button>
+                      {/* Custom Badge Picker */}
+                      <div style={{ position:'relative' }}>
+                        <button
+                          className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
+                          onClick={()=> setShowEmojiPicker(v=>!v)}
+                        >Custom Emoji</button>
+                        {showEmojiPicker && (
+                          <div ref={emojiPickerRef as any} className="emoji-picker" style={{ position:'absolute', top:'110%', right:0, zIndex: 99999 }}>
+                            {EMOJIS.map((e, i)=> (
+                              <button key={i} onClick={async ()=>{
+                                try{
+                                  const files = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
+                                  await assignBadges(files, [e], []);
+                                  setShowEmojiPicker(false);
+                                  setInfo('Badge gesetzt'); setError(null);
+                                  const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
+                                  setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
+                                }catch(err:any){ setError(err?.message||'Badge-Update fehlgeschlagen'); setInfo(null); }
+                              }}>{e}</button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </>
                   )}
 
                   <div className="flex-1" />
 
-                  {/* Kategorie anlegen */}
+                  {/* Kategorien: anlegen/umbenennen/löschen */}
                   <input className="input-field" placeholder="Neue Kategorie" value={newCategoryName} onChange={(e)=>setNewCategoryName(e.target.value)} style={{maxWidth:200}} />
                   <button className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async()=>{
                     try{
@@ -469,6 +488,29 @@ export default function App() {
                       setInfo('Kategorie erstellt'); setError(null);
                     }catch(e:any){ setError(e?.message||'Anlegen fehlgeschlagen'); setInfo(null); }
                   }}>Anlegen</button>
+
+                  <select className="input-field" value={editingCategoryId} onChange={(e)=>{ setEditingCategoryId(e.target.value); const c = categories.find(x=>x.id===e.target.value); setEditingCategoryName(c?.name||''); }} style={{maxWidth:200}}>
+                    <option value="">Kategorie wählen…</option>
+                    {categories.map(c=> <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <input className="input-field" placeholder="Neuer Name" value={editingCategoryName} onChange={(e)=>setEditingCategoryName(e.target.value)} style={{maxWidth:200}} />
+                  <button className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async()=>{
+                    try{
+                      if(!editingCategoryId){ setError('Bitte Kategorie wählen'); return; }
+                      await updateCategory(editingCategoryId, { name: editingCategoryName.trim() });
+                      const cats = await fetchCategories(); setCategories(cats.categories || []);
+                      setInfo('Kategorie umbenannt'); setError(null);
+                    }catch(e:any){ setError(e?.message||'Umbenennen fehlgeschlagen'); setInfo(null); }
+                  }}>Umbenennen</button>
+                  <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async()=>{
+                    try{
+                      if(!editingCategoryId){ setError('Bitte Kategorie wählen'); return; }
+                      await deleteCategory(editingCategoryId);
+                      setEditingCategoryId(''); setEditingCategoryName('');
+                      const cats = await fetchCategories(); setCategories(cats.categories || []);
+                      setInfo('Kategorie gelöscht'); setError(null);
+                    }catch(e:any){ setError(e?.message||'Löschen fehlgeschlagen'); setInfo(null); }
+                  }}>Löschen</button>
 
                   <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async ()=>{ try{ await adminLogout(); setIsAdmin(false); clearSelection(); } catch{} }}>Logout</button>
                 </div>

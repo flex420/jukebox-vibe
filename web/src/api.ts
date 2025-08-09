@@ -28,6 +28,23 @@ export async function createCategory(name: string, color?: string) {
   return res.json();
 }
 
+export async function updateCategory(id: string, payload: { name?: string; color?: string; sort?: number }) {
+  const res = await fetch(`${API_BASE}/categories/${encodeURIComponent(id)}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('Kategorie aktualisieren fehlgeschlagen');
+  return res.json();
+}
+
+export async function deleteCategory(id: string) {
+  const res = await fetch(`${API_BASE}/categories/${encodeURIComponent(id)}`, {
+    method: 'DELETE', credentials: 'include'
+  });
+  if (!res.ok) throw new Error('Kategorie löschen fehlgeschlagen');
+  return res.json();
+}
+
 export async function assignCategories(files: string[], add: string[], remove: string[] = []) {
   const res = await fetch(`${API_BASE}/categories/assign`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
