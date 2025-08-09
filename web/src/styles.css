@@ -301,7 +301,7 @@ body {
 [data-theme="dark"] .sound-btn:hover { transform: translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.4); border-color:#0a84ff }
 [data-theme="dark"] .gradient-text { background: -webkit-linear-gradient(45deg,#e0e0e0,#a0a0a0); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent }
 
-.container { width: 90vw; max-width: 1800px; margin: 0 auto; padding: 28px; }
+.container { width: 90vw; max-width: none; margin: 0 auto; padding: 28px; }
 
 /* Nightly Build: volle Breite (mind. 90% der Anzeige), kein max-width-Limit */
 [data-build="nightly"] .container {
