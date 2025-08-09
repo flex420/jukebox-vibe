@@ -570,7 +570,13 @@ export default function App() {
           {categories.length > 0 && (
             <div className="flex flex-wrap gap-3 text-sm mt-3">
               {categories.map(cat => (
-                <button key={cat.id} className={`tag-btn ${activeCategoryId===cat.id?'active':''}`} onClick={()=> setActiveCategoryId(cat.id)}>{cat.name}</button>
+                <button
+                  key={cat.id}
+                  className={`tag-btn ${activeCategoryId===cat.id?'active':''}`}
+                  onClick={()=> setActiveCategoryId(prev => (prev === cat.id ? '' : cat.id))}
+                >
+                  {cat.name}
+                </button>
               ))}
             </div>
           )}
