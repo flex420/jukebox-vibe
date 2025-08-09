@@ -24,7 +24,7 @@ docker-compose -f docker-compose.feature.yml up -d
 
 ### 4. In Portainer
 - **Hauptversion:** `flex420/discordsoundbot-vib:latest` (Port 3000)
-- **Feature Version:** `flex420/discordsoundbot-vib:feature/css-experiments` (Port 3001)
+- **Feature Version:** `flex420/discordsoundbot-vib:feature/nightly` (Port 3001)
 
 ### 5. Mergen wenn bereit
 ```bash
@@ -37,12 +37,12 @@ git branch -d feature/mein-experiment
 
 ## Docker Images
 - `:latest` - Hauptversion (main branch)
-- `:feature/css-experiments` - Feature Version
+- `:feature/nightly` - Feature Version
 - `:main` - Explizit main branch
 - `:sha-abc123` - Spezifischer Commit
 
 ## Portainer Setup
 1. **Hauptcontainer:** Port 3000, Image `:latest`
-2. **Feature Container:** Port 3001, Image `:feature/css-experiments`
+2. **Feature Container:** Port 3001, Image `:feature/nightly`
 3. **Testing:** Feature auf Port 3001 testen
 4. **Deployment:** Wenn gut, Feature in main mergen

@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app-feature:
-    image: flex420/discordsoundbot-vib:feature/css-experiments
+    image: flex420/discordsoundbot-vib:feature/nightly
     container_name: jukebox-feature
     restart: unless-stopped
     ports:
