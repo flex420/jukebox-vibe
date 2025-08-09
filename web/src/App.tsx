@@ -302,7 +302,7 @@ export default function App() {
                  }`} 
                  onClick={toggleChaosMode}
                >
-                 CHAOS
+                  Partymode
                </button>
               <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => { setChaosMode(false); await stopChaosMode(); }}>Panic</button>
             </div>
