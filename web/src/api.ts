@@ -37,6 +37,15 @@ export async function assignCategories(files: string[], add: string[], remove: s
   return res.json();
 }
 
+export async function assignBadges(files: string[], add: string[], remove: string[] = []) {
+  const res = await fetch(`${API_BASE}/badges/assign`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+    body: JSON.stringify({ files, add, remove })
+  });
+  if (!res.ok) throw new Error('Badges-Update fehlgeschlagen');
+  return res.json();
+}
+
 export async function fetchChannels(): Promise<VoiceChannelInfo[]> {
   const res = await fetch(`${API_BASE}/channels`);
   if (!res.ok) throw new Error('Fehler beim Laden der Channels');

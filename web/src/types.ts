@@ -4,6 +4,7 @@ export type Sound = {
   folder?: string;
   relativePath?: string;
   isRecent?: boolean;
+  badges?: string[];
 };
 
 export type SoundsResponse = {

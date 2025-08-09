@@ -52,6 +52,7 @@ type PersistedState = {
   totalPlays: number;
   categories?: Category[];
   fileCategories?: Record<string, string[]>; // relPath or fileName -> categoryIds[]
+  fileBadges?: Record<string, string[]>; // relPath or fileName -> custom badges (emoji/text)
 };
 // Neuer, persistenter Speicherort direkt im Sounds-Volume
 const STATE_FILE_NEW = path.join(SOUNDS_DIR, 'state.json');
@@ -69,7 +70,8 @@ function readPersistedState(): PersistedState {
         plays: parsed.plays ?? {},
         totalPlays: parsed.totalPlays ?? 0,
         categories: Array.isArray(parsed.categories) ? parsed.categories : [],
-        fileCategories: parsed.fileCategories ?? {}
+        fileCategories: parsed.fileCategories ?? {},
+        fileBadges: parsed.fileBadges ?? {}
       } as PersistedState;
     }
     // 2) Fallback: alten Speicherort lesen und sofort nach NEW migrieren
@@ -81,7 +83,8 @@ function readPersistedState(): PersistedState {
         plays: parsed.plays ?? {},
         totalPlays: parsed.totalPlays ?? 0,
         categories: Array.isArray(parsed.categories) ? parsed.categories : [],
-        fileCategories: parsed.fileCategories ?? {}
+        fileCategories: parsed.fileCategories ?? {},
+        fileBadges: parsed.fileBadges ?? {}
       };
       try {
         fs.mkdirSync(path.dirname(STATE_FILE_NEW), { recursive: true });
@@ -507,10 +510,17 @@ app.get('/api/sounds', (req: Request, res: Response) => {
     result = allItems.filter(i => keys.has(i.relativePath ?? i.fileName));
   }
 
-  const withRecentFlag = result.map((it) => ({
-    ...it,
-    isRecent: recentTop5Set.has(it.relativePath ?? it.fileName)
-  }));
+  // Badges vorbereiten (Top3 = Rakete, Recent = New)
+  const top3Set = new Set(top3.map(t => t.key.split(':')[1]));
+  const customBadges = persistedState.fileBadges ?? {};
+  const withRecentFlag = result.map((it) => {
+    const key = it.relativePath ?? it.fileName;
+    const badges: string[] = [];
+    if (recentTop5Set.has(key)) badges.push('new');
+    if (top3Set.has(key)) badges.push('rocket');
+    for (const b of (customBadges[key] ?? [])) badges.push(b);
+    return { ...it, isRecent: recentTop5Set.has(key), badges } as any;
+  });
 
   res.json({ items: withRecentFlag, total, folders: foldersOut, categories: persistedState.categories ?? [], fileCategories: persistedState.fileCategories ?? {} });
 });
@@ -620,6 +630,23 @@ app.post('/api/categories/assign', requireAdmin, (req: Request, res: Response) =
   persistedState.fileCategories = fc;
   writePersistedState(persistedState);
   res.json({ ok: true, fileCategories: fc });
+});
+
+// Badges (custom) setzen/entfernen (Rakete/Neu kommen automatisch, hier nur freie Badges)
+app.post('/api/badges/assign', requireAdmin, (req: Request, res: Response) => {
+  const { files, add, remove } = req.body as { files?: string[]; add?: string[]; remove?: string[] };
+  if (!Array.isArray(files) || files.length === 0) return res.status(400).json({ error: 'files[] erforderlich' });
+  const fb = persistedState.fileBadges ?? {};
+  for (const rel of files) {
+    const key = rel;
+    const old = new Set(fb[key] ?? []);
+    for (const a of (add ?? [])) old.add(a);
+    for (const r of (remove ?? [])) old.delete(r);
+    fb[key] = Array.from(old);
+  }
+  persistedState.fileBadges = fb;
+  writePersistedState(persistedState);
+  res.json({ ok: true, fileBadges: fb });
 });
 
 app.get('/api/channels', (_req: Request, res: Response) => {

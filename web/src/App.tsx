@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, assignBadges } from './api';
 import type { VoiceChannelInfo, Sound, Category } from './types';
 import { getCookie, setCookie } from './cookies';
 
@@ -438,6 +438,21 @@ export default function App() {
                           }catch(e:any){ setError(e?.message||'Zuweisung fehlgeschlagen'); setInfo(null); }
                         }}
                       >Zu Kategorie</button>
+
+                      {/* Custom Badge setzen */}
+                      <button
+                        className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
+                        onClick={async ()=>{
+                          try{
+                            const files = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
+                            // Beispiel: Herz-Emoji als Badge; später UI-Eingabe möglich
+                            await assignBadges(files, ['❤'], []);
+                            setInfo('Badge gesetzt'); setError(null);
+                            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
+                            setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
+                          }catch(e:any){ setError(e?.message||'Badge-Update fehlgeschlagen'); setInfo(null); }
+                        }}
+                      >Badge ❤</button>
                     </>
                   )}
 
@@ -510,7 +525,12 @@ export default function App() {
                   />
                 )}
                 <div className="sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer" onClick={()=>handlePlay(s.name, s.relativePath)}>
-                  <span className="text-sm font-medium truncate pr-2">{s.name}</span>
+                  <span className="text-sm font-medium truncate pr-2">
+                    {s.name}
+                    {Array.isArray((s as any).badges) && (s as any).badges!.map((b:string, i:number)=> (
+                      <span key={i} style={{ marginLeft: 6, opacity:.9 }}>{b==='new'?'🆕': b==='rocket'?'🚀': b}</span>
+                    ))}
+                  </span>
                   <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button className="text-gray-400 hover:text-[var(--accent-blue)]" onClick={(e)=>{e.stopPropagation(); setFavs(prev=>({ ...prev, [key]: !prev[key] }));}}><span className="material-icons text-xl">{isFav?'star':'star_border'}</span></button>
                   </div>
