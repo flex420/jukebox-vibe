@@ -631,3 +631,19 @@ header p {
 
 
 
+
+/* Tabs/Filter wie der Random-Button im Header (einheitlicher Stil über alle Themes) */
+[data-theme] .tag-btn {
+  padding: 12px 24px;
+  border-radius: 0.5rem;
+  background: #374151; /* bg-gray-700 */
+  color: #ffffff;
+  font-weight: 700;
+  border: none;
+  transition: background-color .2s ease, transform .2s ease;
+}
+[data-theme] .tag-btn:hover { background: #4b5563; /* bg-gray-600 */ }
+[data-theme] .tag-btn.active {
+  background: #4b5563;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.08) inset;
+}
