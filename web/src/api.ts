@@ -106,6 +106,14 @@ export async function partyStop(guildId: string) {
   if (!res.ok) throw new Error('Partymode Stop fehlgeschlagen');
 }
 
+export function subscribeEvents(onMessage: (data: any)=>void) {
+  const ev = new EventSource(`${API_BASE}/events`);
+  ev.onmessage = (e) => {
+    try { const data = JSON.parse(e.data); onMessage(data); } catch {}
+  };
+  return () => ev.close();
+}
+
 export async function setVolumeLive(guildId: string, volume: number): Promise<void> {
   const res = await fetch(`${API_BASE}/volume`, {
     method: 'POST',

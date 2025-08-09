@@ -152,6 +152,14 @@ const guildAudioState = new Map<string, GuildAudioState>();
 // Partymode: serverseitige Steuerung (global pro Guild)
 const partyTimers = new Map<string, NodeJS.Timeout>();
 const partyActive = new Set<string>();
+// SSE-Klienten für Broadcasts (z.B. Partymode Status)
+const sseClients = new Set<Response>();
+function sseBroadcast(payload: any) {
+  const data = `data: ${JSON.stringify(payload)}\n\n`;
+  for (const res of sseClients) {
+    try { res.write(data); } catch {}
+  }
+}
 
 async function playFilePath(guildId: string, channelId: string, filePath: string, volume?: number, relativeKey?: string): Promise<void> {
   const guild = client.guilds.cache.get(guildId);
@@ -871,6 +879,7 @@ app.post('/api/stop', (req: Request, res: Response) => {
       if (t) clearTimeout(t);
       partyTimers.delete(guildId);
       partyActive.delete(guildId);
+      sseBroadcast({ type: 'party', guildId, active: false });
     } catch {}
     return res.json({ ok: true });
   } catch (e: any) {
@@ -921,6 +930,8 @@ function schedulePartyPlayback(guildId: string, channelId: string) {
   // Start: sofort spielen und nächste planen
   partyActive.add(guildId);
   void loop();
+  // Broadcast Status
+  sseBroadcast({ type: 'party', guildId, active: true, channelId });
 }
 
 app.post('/api/party/start', async (req: Request, res: Response) => {
@@ -946,11 +957,29 @@ app.post('/api/party/stop', (req: Request, res: Response) => {
     const t = partyTimers.get(id); if (t) clearTimeout(t);
     partyTimers.delete(id);
     partyActive.delete(id);
+    sseBroadcast({ type: 'party', guildId: id, active: false });
     return res.json({ ok: true });
   } catch (e: any) {
     console.error('party/stop error', e);
     return res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });
   }
+});
+
+// Server-Sent Events Endpoint
+app.get('/api/events', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  // Snapshot senden
+  try { res.write(`data: ${JSON.stringify({ type: 'snapshot', party: Array.from(partyActive) })}\n\n`); } catch {}
+
+  sseClients.add(res);
+  req.on('close', () => {
+    sseClients.delete(res);
+    try { res.end(); } catch {}
+  });
 });
 
 // Static Frontend ausliefern (Vite build)

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, clearBadges, updateCategory, deleteCategory, partyStart, partyStop } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, clearBadges, updateCategory, deleteCategory, partyStart, partyStop, subscribeEvents } from './api';
 import type { VoiceChannelInfo, Sound, Category } from './types';
 import { getCookie, setCookie } from './cookies';
 
@@ -74,6 +74,19 @@ export default function App() {
         const h = await fetch('/api/health').then(r => r.json()).catch(() => null);
         if (h && typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
       } catch {}
+      // SSE: Partymode Status global synchronisieren
+      const unsub = subscribeEvents((msg)=>{
+        if (msg?.type === 'party') {
+          const [gid] = (selected||'').split(':');
+          if (gid && msg.guildId === gid) {
+            setChaosMode(!!msg.active);
+          }
+        } else if (msg?.type === 'snapshot') {
+          const [gid] = (selected||'').split(':');
+          if (gid) setChaosMode(msg.party?.includes(gid));
+        }
+      });
+      return () => { try { unsub(); } catch {} };
     })();
   }, []);
 
