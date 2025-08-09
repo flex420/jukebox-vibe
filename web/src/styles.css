@@ -536,11 +536,11 @@ header p {
 /* Lineares, responsives Flow-Layout für Sounds */
 .sounds-flow {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
+  flex-direction: column;
+  gap: 8px;
 }
 .sounds-flow .sound-wrap {
-  flex: 0 1 220px; /* Basisbreite wie zuvor im Grid */
+  width: 100%;
 }
 .sound-wrap { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
 .sound-wrap.row .sound { width: 100%; }
