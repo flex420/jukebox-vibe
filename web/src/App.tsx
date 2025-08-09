@@ -30,6 +30,7 @@ export default function App() {
   const [chaosMode, setChaosMode] = useState<boolean>(false);
   const chaosTimeoutRef = useRef<number | null>(null);
   const chaosModeRef = useRef<boolean>(false);
+  const [buildInfo, setBuildInfo] = useState<{version: string, channel: string}>({version: '1.0.0', channel: 'stable'});
   useEffect(() => { chaosModeRef.current = chaosMode; }, [chaosMode]);
 
   useEffect(() => {
@@ -46,11 +47,12 @@ export default function App() {
       } catch (e: any) {
         setError(e?.message || 'Fehler beim Laden der Channels');
       }
-      try { setIsAdmin(await adminStatus()); } catch {}
-      try {
-        const h = await fetch('/api/health').then(r => r.json()).catch(() => null);
-        if (h && typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
-      } catch {}
+             try { setIsAdmin(await adminStatus()); } catch {}
+       try {
+         const h = await fetch('/api/health').then(r => r.json()).catch(() => null);
+         if (h && typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
+         if (h && h.buildInfo) setBuildInfo(h.buildInfo);
+       } catch {}
     })();
   }, []);
 
@@ -115,6 +117,7 @@ export default function App() {
       try {
         const h = await fetch('/api/health').then(r => r.json()).catch(() => null);
         if (h && typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
+        if (h && h.buildInfo) setBuildInfo(h.buildInfo);
       } catch {}
     };
     
@@ -255,8 +258,8 @@ export default function App() {
                              <h1 className="text-4xl font-bold">
                  Jukebox 420
                  <div className="text-sm font-normal mt-1 opacity-70">
-                   v{import.meta.env.VITE_APP_VERSION || '1.0.0'}
-                   {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
+                   v{buildInfo.version}
+                   {buildInfo.channel === 'nightly' && (
                      <span className="ml-2" style={{ color: '#ff4d4f' }}>• Nightly</span>
                    )}
                  </div>
