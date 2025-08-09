@@ -548,7 +548,12 @@ header p {
   flex: 0 0 auto;
 }
 /* Kartenbreite an Tabs angelehnt */
-.sounds-flow .sound-btn { min-width: 180px; }
+.sounds-flow .sound-btn {
+  display: inline-flex;
+  width: auto;
+  max-width: 260px; /* verhindert überlange Buttons, mehr Cards pro Zeile */
+  white-space: nowrap; /* einzeilig */
+}
 .sound-wrap { position: relative; display: block; }
 .sound-wrap.row .sound { width: 100%; }
 .row-check { width: 18px; height: 18px; accent-color: #60a5fa; }
