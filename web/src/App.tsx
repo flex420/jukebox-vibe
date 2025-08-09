@@ -568,7 +568,6 @@ export default function App() {
             })}
             {categories.length > 0 && (
               <>
-                <button className={`tag-btn ${!activeCategoryId ? 'active' : ''}`} onClick={()=> setActiveCategoryId('')}>Alle Kategorien</button>
                 {categories.map(cat => (
                   <button key={cat.id} className={`tag-btn ${activeCategoryId===cat.id?'active':''}`} onClick={()=> setActiveCategoryId(cat.id)}>{cat.name}</button>
                 ))}
