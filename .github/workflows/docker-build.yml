@@ -40,6 +40,8 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            REACT_APP_VERSION=${{ steps.docker_tag.outputs.tag == 'main' && 'stable' || 'nightly' }}
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
