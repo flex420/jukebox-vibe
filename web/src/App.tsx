@@ -27,6 +27,10 @@ export default function App() {
   const [clock, setClock] = useState<string>(() => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }).format(new Date()));
   const [totalPlays, setTotalPlays] = useState<number>(0);
   const [mediaUrl, setMediaUrl] = useState<string>('');
+  const [chaosMode, setChaosMode] = useState<boolean>(false);
+  const chaosTimeoutRef = useRef<number | null>(null);
+  const chaosModeRef = useRef<boolean>(false);
+  useEffect(() => { chaosModeRef.current = chaosMode; }, [chaosMode]);
 
   useEffect(() => {
     (async () => {
@@ -89,6 +93,11 @@ export default function App() {
   // Theme anwenden/persistieren
   useEffect(() => {
     document.body.setAttribute('data-theme', theme);
+    if (import.meta.env.VITE_BUILD_CHANNEL === 'nightly') {
+      document.body.setAttribute('data-build', 'nightly');
+    } else {
+      document.body.removeAttribute('data-build');
+    }
     localStorage.setItem('theme', theme);
   }, [theme]);
 
@@ -160,6 +169,72 @@ export default function App() {
     }
   }
 
+  // CHAOS Mode Funktionen (zufällige Wiedergabe alle 1-3 Minuten)
+  const startChaosMode = async () => {
+    if (!selected || !sounds.length) return;
+
+    const playRandomSound = async () => {
+      const pool = sounds;
+      if (!pool.length || !selected) return;
+      const randomSound = pool[Math.floor(Math.random() * pool.length)];
+      const [guildId, channelId] = selected.split(':');
+      try {
+        await playSound(randomSound.name, guildId, channelId, volume, randomSound.relativePath);
+      } catch (e: any) {
+        console.error('Chaos sound play failed:', e);
+      }
+    };
+
+    const scheduleNextPlay = async () => {
+      if (!chaosModeRef.current) return;
+      await playRandomSound();
+      const delay = 60_000 + Math.floor(Math.random() * 60_000); // 60-120 Sekunden
+      chaosTimeoutRef.current = window.setTimeout(scheduleNextPlay, delay);
+    };
+
+    // Sofort ersten Sound abspielen
+    await playRandomSound();
+    // Nächsten zufällig in 1-3 Minuten planen
+    const firstDelay = 60_000 + Math.floor(Math.random() * 60_000);
+    chaosTimeoutRef.current = window.setTimeout(scheduleNextPlay, firstDelay);
+  };
+
+  const stopChaosMode = async () => {
+    if (chaosTimeoutRef.current) {
+      clearTimeout(chaosTimeoutRef.current);
+      chaosTimeoutRef.current = null;
+    }
+    
+    // Alle Sounds stoppen (wie Panic Button)
+    if (selected) {
+      const [guildId] = selected.split(':');
+      try {
+        await fetch(`/api/stop?guildId=${encodeURIComponent(guildId)}`, { method: 'POST' });
+      } catch (e: any) {
+        console.error('Chaos stop failed:', e);
+      }
+    }
+  };
+
+  const toggleChaosMode = async () => {
+    if (chaosMode) {
+      setChaosMode(false);
+      await stopChaosMode();
+    } else {
+      setChaosMode(true);
+      await startChaosMode();
+    }
+  };
+
+  // Cleanup bei Komponenten-Unmount
+  useEffect(() => {
+    return () => {
+      if (chaosTimeoutRef.current) {
+        clearTimeout(chaosTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <div className="container mx-auto" data-theme={theme}>
@@ -199,7 +274,17 @@ export default function App() {
               <button className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => {
                 try { const res = await fetch('/api/sounds'); const data = await res.json(); const items = data?.items || []; if (!items.length || !selected) return; const rnd = items[Math.floor(Math.random()*items.length)]; const [guildId, channelId] = selected.split(':'); await playSound(rnd.name, guildId, channelId, volume, rnd.relativePath);} catch {}
               }}>Random</button>
-              <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => { if (!selected) return; const [guildId] = selected.split(':'); await fetch(`/api/stop?guildId=${encodeURIComponent(guildId)}`, { method:'POST' }); }}>Panic</button>
+              <button 
+                 className={`font-bold py-3 px-6 rounded-lg transition duration-300 ${
+                   chaosMode 
+                     ? 'chaos-rainbow text-white' 
+                     : 'bg-gray-700 hover:bg-gray-600 text-white'
+                 }`} 
+                 onClick={toggleChaosMode}
+               >
+                 CHAOS
+               </button>
+              <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => { setChaosMode(false); await stopChaosMode(); }}>Panic</button>
             </div>
           </div>
         </header>
@@ -272,7 +357,24 @@ export default function App() {
               {!isAdmin ? (
                 <>
                   <div className="relative w-full sm:w-auto" style={{maxWidth:'15%'}}>
-                    <input className="input-field pl-10 with-left-icon" placeholder="Admin Passwort" type="password" value={adminPwd} onChange={(e)=>setAdminPwd(e.target.value)} />
+                    <input 
+                      className="input-field pl-10 with-left-icon" 
+                      placeholder="Admin Passwort" 
+                      type="password" 
+                      value={adminPwd} 
+                      onChange={(e)=>setAdminPwd(e.target.value)}
+                      onKeyDown={async (e)=>{
+                        if(e.key === 'Enter') {
+                          const ok = await adminLogin(adminPwd);
+                          if(ok) {
+                            setIsAdmin(true);
+                            setAdminPwd('');
+                          } else {
+                            alert('Login fehlgeschlagen');
+                          }
+                        }
+                      }}
+                    />
                     <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>lock</span>
                   </div>
                   <button className="bg-gray-800 text-white hover:bg-black font-semibold py-2 px-5 rounded-lg transition-all w-full sm:w-auto" style={{maxWidth:'15%'}} onClick={async ()=>{ const ok=await adminLogin(adminPwd); if(ok){ setIsAdmin(true); setAdminPwd(''); } else alert('Login fehlgeschlagen'); }}>Login</button>
@@ -316,6 +418,9 @@ export default function App() {
           </div>
         </div>
 
+        {error && <div className="error mb-4">{error}</div>}
+        {info && <div className="badge mb-4" style={{ background:'rgba(34,197,94,.18)', borderColor:'rgba(34,197,94,.35)' }}>{info}</div>}
+
         <div className="bg-transparent mb-8">
           <div className="flex flex-wrap gap-3 text-sm">
             <button className={`tag-btn ${activeFolder==='__favs__'?'active':''}`} onClick={()=>setActiveFolder('__favs__')}>Favoriten ({favCount})</button>
@@ -337,9 +442,6 @@ export default function App() {
             })}
           </div>
         </div>
-
-        {error && <div className="error">{error}</div>}
-        {info && <div className="badge" style={{ background:'rgba(34,197,94,.18)', borderColor:'rgba(34,197,94,.35)' }}>{info}</div>}
 
         <main className="sounds-flow">
           {(activeFolder === '__favs__' ? filtered.filter((s) => !!favs[s.relativePath ?? s.fileName]) : filtered).map((s) => {
