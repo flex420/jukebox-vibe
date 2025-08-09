@@ -6,6 +6,8 @@ services:
       - "8199:8080"
     env_file:
       - .env
+    environment:
+      - REACT_APP_VERSION=stable
     volumes:
       - ./data/sounds:/data/sounds
     restart: unless-stopped

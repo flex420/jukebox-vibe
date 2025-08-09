@@ -2,7 +2,7 @@
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feature/*" ]
   workflow_dispatch:
 
 env:
@@ -24,12 +24,26 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Generate Docker tag
+        id: docker_tag
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "tag=main" >> $GITHUB_OUTPUT
+          else
+            # Ersetze Slashes durch Bindestriche für gültige Docker Tags
+            CLEAN_TAG=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
+            echo "tag=$CLEAN_TAG" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
+          build-args: |
+            VITE_BUILD_CHANNEL=${{ steps.docker_tag.outputs.tag == 'main' && 'stable' || 'nightly' }}
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:${{ steps.docker_tag.outputs.tag }}
           platforms: linux/amd64

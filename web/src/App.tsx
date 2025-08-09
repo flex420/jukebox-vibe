@@ -177,7 +177,12 @@ export default function App() {
         <header className="flex items-center justify-between p-6">
           <div className="flex items-center">
             <div>
-              <h1 className="text-4xl font-bold">Jukebox 420</h1>
+              <h1 className="text-4xl font-bold">
+                Jukebox 420
+                {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
+                  <span className="text-sm font-semibold ml-2" style={{ color: '#ff4d4f' }}>Nightly Build</span>
+                )}
+              </h1>
               <p className="text-7xl font-bold mt-2">{clock}</p>
             </div>
           </div>
@@ -314,16 +319,29 @@ export default function App() {
         <div className="bg-transparent mb-8">
           <div className="flex flex-wrap gap-3 text-sm">
             <button className={`tag-btn ${activeFolder==='__favs__'?'active':''}`} onClick={()=>setActiveFolder('__favs__')}>Favoriten ({favCount})</button>
-            {folders.map(f=> (
-              <button key={f.key} className={`tag-btn ${activeFolder===f.key?'active':''}`} onClick={async ()=>{ setActiveFolder(f.key); const resp=await fetchSounds(undefined, f.key); setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders); }}>{f.name} ({f.count})</button>
-            ))}
+            {folders.map(f=> {
+              const displayName = f.name.replace(/\s*\(\d+\)\s*$/, '');
+              return (
+                <button
+                  key={f.key}
+                  className={`tag-btn ${activeFolder===f.key?'active':''}`}
+                  onClick={async ()=>{
+                    setActiveFolder(f.key);
+                    const resp=await fetchSounds(undefined, f.key);
+                    setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
+                  }}
+                >
+                  {displayName} ({f.count})
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {error && <div className="error">{error}</div>}
         {info && <div className="badge" style={{ background:'rgba(34,197,94,.18)', borderColor:'rgba(34,197,94,.35)' }}>{info}</div>}
 
-        <main className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <main className="sounds-flow">
           {(activeFolder === '__favs__' ? filtered.filter((s) => !!favs[s.relativePath ?? s.fileName]) : filtered).map((s) => {
             const key = `${s.relativePath ?? s.fileName}`;
             const isFav = !!favs[key];

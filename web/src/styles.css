@@ -339,6 +339,9 @@ header h1 {
   color: inherit;
 }
 
+/* Nightly Badge Farbe (Fallback) */
+.nightly-badge { color: #ff4d4f; }
+
 header p { 
   margin: 0;
   opacity: .9; 
@@ -532,7 +535,28 @@ header p {
 .error { background: rgba(255, 99, 99, .12); color: #ffd1d1; border: 1px solid rgba(255, 99, 99, .3); padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-.sound-wrap { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+
+/* Lineares, responsives Flow-Layout für Sounds */
+.sounds-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+}
+.sounds-flow .sound-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+/* Kartenbreite an Tabs angelehnt */
+.sounds-flow .sound-btn {
+  display: inline-flex;
+  width: auto;
+  max-width: 260px; /* verhindert überlange Buttons, mehr Cards pro Zeile */
+  white-space: nowrap; /* einzeilig */
+  padding: 12px 16px; /* gleichmäßiges Padding links/rechts */
+  justify-content: center; /* Text zentrieren */
+}
+.sound-wrap { position: relative; display: block; }
 .sound-wrap.row .sound { width: 100%; }
 .row-check { width: 18px; height: 18px; accent-color: #60a5fa; }
 .select-check {
@@ -609,3 +633,37 @@ header p {
 
 
 
+
+/* Tabs/Filter wie der Random-Button im Header (einheitlicher Stil über alle Themes) */
+[data-theme] .tag-btn {
+  padding: 12px 24px;
+  border-radius: 0.5rem;
+  background: #374151; /* bg-gray-700 */
+  color: #ffffff;
+  font-size: .875rem; /* einheitliche Schriftgröße wie andere Themes */
+  font-weight: 700;
+  border: none;
+  transition: background-color .2s ease, transform .2s ease;
+}
+[data-theme] .tag-btn:hover { background: #4b5563; /* bg-gray-600 */ }
+[data-theme] .tag-btn.active {
+  background: #4b5563;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.08) inset;
+}
+
+/* Aktives Tab farbig je nach Theme */
+[data-theme="dark"] .tag-btn.active {
+  background: #0a84ff !important;
+  color: #ffffff !important;
+}
+[data-theme="rainbow"] .tag-btn.active {
+  background: linear-gradient(90deg, #ff6384, #36a2eb, #ffce56, #4bc0c0, #9966ff) !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+}
+[data-theme="420"] .tag-btn.active {
+  background: #22c55e !important;
+  color: #ffffff !important;
+  border-color: #22c55e !important;
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+}

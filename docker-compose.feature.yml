@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  app-feature:
+    image: flex420/discordsoundbot-vib:feature-nightly
+    container_name: jukebox-feature
+    restart: unless-stopped
+    ports:
+      - "8199:8080"  # Gleicher Port wie Stable
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - CLIENT_ID=${CLIENT_ID}
+      - GUILD_ID=${GUILD_ID}
+      - ADMIN_PWD=${ADMIN_PWD}
+      - REACT_APP_VERSION=nightly
+    volumes:
+      - ./data/sounds:/data/sounds
+      - ./data/uploads:/data/uploads
+    networks:
+      - jukebox-network
+
+networks:
+  jukebox-network:
+    driver: bridge
