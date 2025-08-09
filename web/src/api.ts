@@ -2,12 +2,38 @@ import type { Sound, SoundsResponse, VoiceChannelInfo } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
-export async function fetchSounds(q?: string, folderKey?: string): Promise<SoundsResponse> {
+export async function fetchSounds(q?: string, folderKey?: string, categoryId?: string): Promise<SoundsResponse> {
   const url = new URL(`${API_BASE}/sounds`, window.location.origin);
   if (q) url.searchParams.set('q', q);
   if (folderKey !== undefined) url.searchParams.set('folder', folderKey);
+  if (categoryId) url.searchParams.set('categoryId', categoryId);
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error('Fehler beim Laden der Sounds');
+  return res.json();
+}
+
+// Kategorien
+export async function fetchCategories() {
+  const res = await fetch(`${API_BASE}/categories`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Fehler beim Laden der Kategorien');
+  return res.json();
+}
+
+export async function createCategory(name: string, color?: string) {
+  const res = await fetch(`${API_BASE}/categories`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+    body: JSON.stringify({ name, color })
+  });
+  if (!res.ok) throw new Error('Kategorie anlegen fehlgeschlagen');
+  return res.json();
+}
+
+export async function assignCategories(files: string[], add: string[], remove: string[] = []) {
+  const res = await fetch(`${API_BASE}/categories/assign`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+    body: JSON.stringify({ files, add, remove })
+  });
+  if (!res.ok) throw new Error('Zuordnung fehlgeschlagen');
   return res.json();
 }
 

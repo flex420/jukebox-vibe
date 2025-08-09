@@ -44,8 +44,15 @@ if (!DISCORD_TOKEN) {
 
 fs.mkdirSync(SOUNDS_DIR, { recursive: true });
 
-// Persistente Lautstärke und Play-Zähler speichern
-type PersistedState = { volumes: Record<string, number>; plays: Record<string, number>; totalPlays: number };
+// Persistenter Zustand: Lautstärke/Plays + Kategorien
+type Category = { id: string; name: string; color?: string; sort?: number };
+type PersistedState = {
+  volumes: Record<string, number>;
+  plays: Record<string, number>;
+  totalPlays: number;
+  categories?: Category[];
+  fileCategories?: Record<string, string[]>; // relPath or fileName -> categoryIds[]
+};
 // Neuer, persistenter Speicherort direkt im Sounds-Volume
 const STATE_FILE_NEW = path.join(SOUNDS_DIR, 'state.json');
 // Alter Speicherort (eine Ebene über SOUNDS_DIR). Wird für Migration gelesen, falls vorhanden.
@@ -57,13 +64,25 @@ function readPersistedState(): PersistedState {
     if (fs.existsSync(STATE_FILE_NEW)) {
       const raw = fs.readFileSync(STATE_FILE_NEW, 'utf8');
       const parsed = JSON.parse(raw);
-      return { volumes: parsed.volumes ?? {}, plays: parsed.plays ?? {}, totalPlays: parsed.totalPlays ?? 0 } as PersistedState;
+      return {
+        volumes: parsed.volumes ?? {},
+        plays: parsed.plays ?? {},
+        totalPlays: parsed.totalPlays ?? 0,
+        categories: Array.isArray(parsed.categories) ? parsed.categories : [],
+        fileCategories: parsed.fileCategories ?? {}
+      } as PersistedState;
     }
     // 2) Fallback: alten Speicherort lesen und sofort nach NEW migrieren
     if (fs.existsSync(STATE_FILE_OLD)) {
       const raw = fs.readFileSync(STATE_FILE_OLD, 'utf8');
       const parsed = JSON.parse(raw);
-      const migrated: PersistedState = { volumes: parsed.volumes ?? {}, plays: parsed.plays ?? {}, totalPlays: parsed.totalPlays ?? 0 };
+      const migrated: PersistedState = {
+        volumes: parsed.volumes ?? {},
+        plays: parsed.plays ?? {},
+        totalPlays: parsed.totalPlays ?? 0,
+        categories: Array.isArray(parsed.categories) ? parsed.categories : [],
+        fileCategories: parsed.fileCategories ?? {}
+      };
       try {
         fs.mkdirSync(path.dirname(STATE_FILE_NEW), { recursive: true });
         fs.writeFileSync(STATE_FILE_NEW, JSON.stringify(migrated, null, 2), 'utf8');
@@ -333,7 +352,7 @@ app.use(express.json());
 app.use(cors());
 
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({ ok: true, totalPlays: persistedState.totalPlays ?? 0 });
+  res.json({ ok: true, totalPlays: persistedState.totalPlays ?? 0, categories: (persistedState.categories ?? []).length });
 });
 
 // --- Admin Auth ---
@@ -397,6 +416,7 @@ app.get('/api/admin/status', (req: Request, res: Response) => {
 app.get('/api/sounds', (req: Request, res: Response) => {
   const q = String(req.query.q ?? '').toLowerCase();
   const folderFilter = typeof req.query.folder === 'string' ? (req.query.folder as string) : '__all__';
+  const categoryFilter = typeof (req.query as any).categoryId === 'string' ? String((req.query as any).categoryId) : undefined;
 
   const rootEntries = fs.readdirSync(SOUNDS_DIR, { withFileTypes: true });
   const rootFiles = rootEntries
@@ -472,7 +492,16 @@ app.get('/api/sounds', (req: Request, res: Response) => {
     ...folders
   ];
   // isRecent-Flag für UI (Top 5 der neuesten)
+  // Kategorie-Filter (virtuell) anwenden, wenn gesetzt
   let result = filteredItems;
+  if (categoryFilter) {
+    const fc = persistedState.fileCategories ?? {};
+    result = result.filter((it) => {
+      const key = it.relativePath ?? it.fileName;
+      const cats = fc[key] ?? [];
+      return cats.includes(categoryFilter);
+    });
+  }
   if (folderFilter === '__top3__') {
     const keys = new Set(top3.map(t => t.key.split(':')[1]));
     result = allItems.filter(i => keys.has(i.relativePath ?? i.fileName));
@@ -483,7 +512,7 @@ app.get('/api/sounds', (req: Request, res: Response) => {
     isRecent: recentTop5Set.has(it.relativePath ?? it.fileName)
   }));
 
-  res.json({ items: withRecentFlag, total, folders: foldersOut });
+  res.json({ items: withRecentFlag, total, folders: foldersOut, categories: persistedState.categories ?? [], fileCategories: persistedState.fileCategories ?? {} });
 });
 
 // --- Admin: Bulk-Delete ---
@@ -526,6 +555,71 @@ app.post('/api/admin/sounds/rename', requireAdmin, (req: Request, res: Response)
   } catch (e: any) {
     res.status(500).json({ error: e?.message ?? 'Rename fehlgeschlagen' });
   }
+});
+
+// --- Kategorien API ---
+app.get('/api/categories', (_req: Request, res: Response) => {
+  res.json({ categories: persistedState.categories ?? [] });
+});
+
+app.post('/api/categories', requireAdmin, (req: Request, res: Response) => {
+  const { name, color, sort } = req.body as { name?: string; color?: string; sort?: number };
+  const n = (name || '').trim();
+  if (!n) return res.status(400).json({ error: 'name erforderlich' });
+  const id = crypto.randomUUID();
+  const cat = { id, name: n, color, sort };
+  persistedState.categories = [...(persistedState.categories ?? []), cat];
+  writePersistedState(persistedState);
+  res.json({ ok: true, category: cat });
+});
+
+app.patch('/api/categories/:id', requireAdmin, (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, color, sort } = req.body as { name?: string; color?: string; sort?: number };
+  const cats = persistedState.categories ?? [];
+  const idx = cats.findIndex(c => c.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Kategorie nicht gefunden' });
+  const updated = { ...cats[idx] } as any;
+  if (typeof name === 'string') updated.name = name;
+  if (typeof color === 'string') updated.color = color;
+  if (typeof sort === 'number') updated.sort = sort;
+  cats[idx] = updated;
+  persistedState.categories = cats;
+  writePersistedState(persistedState);
+  res.json({ ok: true, category: updated });
+});
+
+app.delete('/api/categories/:id', requireAdmin, (req: Request, res: Response) => {
+  const { id } = req.params;
+  const cats = persistedState.categories ?? [];
+  if (!cats.find(c => c.id === id)) return res.status(404).json({ error: 'Kategorie nicht gefunden' });
+  persistedState.categories = cats.filter(c => c.id !== id);
+  // Zuordnungen entfernen
+  const fc = persistedState.fileCategories ?? {};
+  for (const k of Object.keys(fc)) fc[k] = (fc[k] ?? []).filter(x => x !== id);
+  persistedState.fileCategories = fc;
+  writePersistedState(persistedState);
+  res.json({ ok: true });
+});
+
+// Bulk-Assign/Remove Kategorien zu Dateien
+app.post('/api/categories/assign', requireAdmin, (req: Request, res: Response) => {
+  const { files, add, remove } = req.body as { files?: string[]; add?: string[]; remove?: string[] };
+  if (!Array.isArray(files) || files.length === 0) return res.status(400).json({ error: 'files[] erforderlich' });
+  const validCats = new Set((persistedState.categories ?? []).map(c => c.id));
+  const toAdd = (add ?? []).filter(id => validCats.has(id));
+  const toRemove = (remove ?? []).filter(id => validCats.has(id));
+  const fc = persistedState.fileCategories ?? {};
+  for (const rel of files) {
+    const key = rel;
+    const old = new Set(fc[key] ?? []);
+    for (const a of toAdd) old.add(a);
+    for (const r of toRemove) old.delete(r);
+    fc[key] = Array.from(old);
+  }
+  persistedState.fileCategories = fc;
+  writePersistedState(persistedState);
+  res.json({ ok: true, fileCategories: fc });
 });
 
 app.get('/api/channels', (_req: Request, res: Response) => {

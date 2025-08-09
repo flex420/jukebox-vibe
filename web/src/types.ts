@@ -10,6 +10,8 @@ export type SoundsResponse = {
   items: Sound[];
   total: number;
   folders: Array<{ key: string; name: string; count: number }>;
+  categories?: Category[];
+  fileCategories?: Record<string, string[]>;
 };
 
 export type VoiceChannelInfo = {
@@ -18,6 +20,8 @@ export type VoiceChannelInfo = {
   channelId: string;
   channelName: string;
 };
+
+export type Category = { id: string; name: string; color?: string; sort?: number };
 
 
 
