@@ -309,6 +309,19 @@ body {
   max-width: none;
 }
 
+/* CHAOS Button Regenbogen-Animation */
+.chaos-rainbow {
+  background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #80ff00, #00ff00, #00ff80, #00ffff, #0080ff, #0000ff, #8000ff, #ff00ff, #ff0080);
+  background-size: 400% 400%;
+  animation: chaos-rainbow-animation 2s ease-in-out infinite;
+}
+
+@keyframes chaos-rainbow-animation {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 /* Neuer Header-Style basierend auf Google Stitch Design */
 header { 
   display: flex; 
