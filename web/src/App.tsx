@@ -357,7 +357,24 @@ export default function App() {
               {!isAdmin ? (
                 <>
                   <div className="relative w-full sm:w-auto" style={{maxWidth:'15%'}}>
-                    <input className="input-field pl-10 with-left-icon" placeholder="Admin Passwort" type="password" value={adminPwd} onChange={(e)=>setAdminPwd(e.target.value)} />
+                    <input 
+                      className="input-field pl-10 with-left-icon" 
+                      placeholder="Admin Passwort" 
+                      type="password" 
+                      value={adminPwd} 
+                      onChange={(e)=>setAdminPwd(e.target.value)}
+                      onKeyDown={async (e)=>{
+                        if(e.key === 'Enter') {
+                          const ok = await adminLogin(adminPwd);
+                          if(ok) {
+                            setIsAdmin(true);
+                            setAdminPwd('');
+                          } else {
+                            alert('Login fehlgeschlagen');
+                          }
+                        }
+                      }}
+                    />
                     <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>lock</span>
                   </div>
                   <button className="bg-gray-800 text-white hover:bg-black font-semibold py-2 px-5 rounded-lg transition-all w-full sm:w-auto" style={{maxWidth:'15%'}} onClick={async ()=>{ const ok=await adminLogin(adminPwd); if(ok){ setIsAdmin(true); setAdminPwd(''); } else alert('Login fehlgeschlagen'); }}>Login</button>
