@@ -539,13 +539,17 @@ header p {
 /* Lineares, responsives Flow-Layout für Sounds */
 .sounds-flow {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
 }
 .sounds-flow .sound-wrap {
-  width: 100%;
+  position: relative;
+  flex: 0 0 auto;
 }
-.sound-wrap { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+/* Kartenbreite an Tabs angelehnt */
+.sounds-flow .sound-btn { min-width: 180px; }
+.sound-wrap { position: relative; display: block; }
 .sound-wrap.row .sound { width: 100%; }
 .row-check { width: 18px; height: 18px; accent-color: #60a5fa; }
 .select-check {
