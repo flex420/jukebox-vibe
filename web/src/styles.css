@@ -577,6 +577,14 @@ header p {
 }
 /* Soundbutton-Text minimal kräftiger als 500 */
 .sounds-flow .sound-btn > span { font-weight: 501 !important; }
+
+/* URL Input mit Download Button - Text soll nicht über Button laufen */
+.input-field.pl-10.with-left-icon {
+  padding-right: 100px !important; /* Platz für Download Button */
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
 .sound-wrap { position: relative; display: block; }
 .sound-wrap.row .sound { width: 100%; }
 .row-check { width: 18px; height: 18px; accent-color: #60a5fa; }
