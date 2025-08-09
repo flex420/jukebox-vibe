@@ -333,14 +333,7 @@ app.use(express.json());
 app.use(cors());
 
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({ 
-    ok: true, 
-    totalPlays: persistedState.totalPlays ?? 0,
-    buildInfo: {
-      version: process.env.VITE_APP_VERSION || '1.0.0',
-      channel: process.env.VITE_BUILD_CHANNEL || 'stable'
-    }
-  });
+  res.json({ ok: true, totalPlays: persistedState.totalPlays ?? 0 });
 });
 
 // --- Admin Auth ---
