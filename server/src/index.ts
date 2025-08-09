@@ -149,6 +149,9 @@ type GuildAudioState = {
   currentVolume: number; // 0..1
 };
 const guildAudioState = new Map<string, GuildAudioState>();
+// Partymode: serverseitige Steuerung (global pro Guild)
+const partyTimers = new Map<string, NodeJS.Timeout>();
+const partyActive = new Set<string>();
 
 async function playFilePath(guildId: string, channelId: string, filePath: string, volume?: number, relativeKey?: string): Promise<void> {
   const guild = client.guilds.cache.get(guildId);
@@ -862,8 +865,90 @@ app.post('/api/stop', (req: Request, res: Response) => {
     const state = guildAudioState.get(guildId);
     if (!state) return res.status(404).json({ error: 'Kein aktiver Player' });
     state.player.stop(true);
+    // Partymode für diese Guild ebenfalls stoppen
+    try {
+      const t = partyTimers.get(guildId);
+      if (t) clearTimeout(t);
+      partyTimers.delete(guildId);
+      partyActive.delete(guildId);
+    } catch {}
     return res.json({ ok: true });
   } catch (e: any) {
+    return res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });
+  }
+});
+
+// --- Partymode (serverseitig) ---
+function schedulePartyPlayback(guildId: string, channelId: string) {
+  const MIN_DELAY = 30_000; // 30s
+  const MAX_EXTRA = 60_000; // +0..60s => 30..90s
+
+  const doPlay = async () => {
+    try {
+      // Dateien ermitteln (mp3/wav, inkl. Subfolder)
+      const rootEntries = fs.readdirSync(SOUNDS_DIR, { withFileTypes: true });
+      const pick: string[] = [];
+      for (const d of rootEntries) {
+        if (d.isFile()) {
+          const l = d.name.toLowerCase(); if (l.endsWith('.mp3') || l.endsWith('.wav')) pick.push(path.join(SOUNDS_DIR, d.name));
+        } else if (d.isDirectory()) {
+          const folderPath = path.join(SOUNDS_DIR, d.name);
+          const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+          for (const e of entries) {
+            if (!e.isFile()) continue;
+            const n = e.name.toLowerCase();
+            if (n.endsWith('.mp3') || n.endsWith('.wav')) pick.push(path.join(folderPath, e.name));
+          }
+        }
+      }
+      if (pick.length === 0) return;
+      const filePath = pick[Math.floor(Math.random() * pick.length)];
+      await playFilePath(guildId, channelId, filePath);
+    } catch (err) {
+      console.error('Partymode play error:', err);
+    }
+  };
+
+  const loop = async () => {
+    if (!partyActive.has(guildId)) return;
+    await doPlay();
+    if (!partyActive.has(guildId)) return;
+    const delay = MIN_DELAY + Math.floor(Math.random() * MAX_EXTRA);
+    const t = setTimeout(loop, delay);
+    partyTimers.set(guildId, t);
+  };
+
+  // Start: sofort spielen und nächste planen
+  partyActive.add(guildId);
+  void loop();
+}
+
+app.post('/api/party/start', async (req: Request, res: Response) => {
+  try {
+    const { guildId, channelId } = req.body as { guildId?: string; channelId?: string };
+    if (!guildId || !channelId) return res.status(400).json({ error: 'guildId und channelId erforderlich' });
+    // vorhandenen Timer stoppen
+    const old = partyTimers.get(guildId); if (old) clearTimeout(old);
+    partyTimers.delete(guildId);
+    schedulePartyPlayback(guildId, channelId);
+    return res.json({ ok: true });
+  } catch (e: any) {
+    console.error('party/start error', e);
+    return res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });
+  }
+});
+
+app.post('/api/party/stop', (req: Request, res: Response) => {
+  try {
+    const { guildId } = req.body as { guildId?: string };
+    const id = String(guildId ?? '');
+    if (!id) return res.status(400).json({ error: 'guildId erforderlich' });
+    const t = partyTimers.get(id); if (t) clearTimeout(t);
+    partyTimers.delete(id);
+    partyActive.delete(id);
+    return res.json({ ok: true });
+  } catch (e: any) {
+    console.error('party/stop error', e);
     return res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });
   }
 });

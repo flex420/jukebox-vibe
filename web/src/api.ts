@@ -90,6 +90,22 @@ export async function playSound(soundName: string, guildId: string, channelId: s
   }
 }
 
+export async function partyStart(guildId: string, channelId: string) {
+  const res = await fetch(`${API_BASE}/party/start`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ guildId, channelId })
+  });
+  if (!res.ok) throw new Error('Partymode Start fehlgeschlagen');
+}
+
+export async function partyStop(guildId: string) {
+  const res = await fetch(`${API_BASE}/party/stop`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ guildId })
+  });
+  if (!res.ok) throw new Error('Partymode Stop fehlgeschlagen');
+}
+
 export async function setVolumeLive(guildId: string, volume: number): Promise<void> {
   const res = await fetch(`${API_BASE}/volume`, {
     method: 'POST',

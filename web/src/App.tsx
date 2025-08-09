@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, assignBadges, clearBadges, updateCategory, deleteCategory } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, assignBadges, clearBadges, updateCategory, deleteCategory, partyStart, partyStop } from './api';
 import type { VoiceChannelInfo, Sound, Category } from './types';
 import { getCookie, setCookie } from './cookies';
 
@@ -243,9 +243,13 @@ export default function App() {
     if (chaosMode) {
       setChaosMode(false);
       await stopChaosMode();
+      // serverseitig stoppen
+      if (selected) { const [guildId] = selected.split(':'); try { await partyStop(guildId); } catch {} }
     } else {
       setChaosMode(true);
       await startChaosMode();
+      // serverseitig starten
+      if (selected) { const [guildId, channelId] = selected.split(':'); try { await partyStart(guildId, channelId); } catch {} }
     }
   };
 
@@ -310,7 +314,7 @@ export default function App() {
                >
                   Partymode
                </button>
-              <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => { setChaosMode(false); await stopChaosMode(); }}>Panic</button>
+              <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => { setChaosMode(false); await stopChaosMode(); if(selected){ const [guildId]=selected.split(':'); try{ await partyStop(guildId);}catch{} } }}>Panic</button>
             </div>
           </div>
         </header>
