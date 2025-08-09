@@ -45,6 +45,7 @@ export default function App() {
     return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codePoints}.svg`;
   }
   const [showBroccoli, setShowBroccoli] = useState<boolean>(false);
+  const [partyActiveGuilds, setPartyActiveGuilds] = useState<string[]>([]);
   const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
   const [clock, setClock] = useState<string>(() => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }).format(new Date()));
   const [totalPlays, setTotalPlays] = useState<number>(0);
@@ -74,21 +75,30 @@ export default function App() {
         const h = await fetch('/api/health').then(r => r.json()).catch(() => null);
         if (h && typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
       } catch {}
-      // SSE: Partymode Status global synchronisieren
-      const unsub = subscribeEvents((msg)=>{
-        if (msg?.type === 'party') {
-          const [gid] = (selected||'').split(':');
-          if (gid && msg.guildId === gid) {
-            setChaosMode(!!msg.active);
-          }
-        } else if (msg?.type === 'snapshot') {
-          const [gid] = (selected||'').split(':');
-          if (gid) setChaosMode(msg.party?.includes(gid));
-        }
-      });
-      return () => { try { unsub(); } catch {} };
     })();
   }, []);
+
+  // SSE: Partymode-Status global synchronisieren (sauberes Cleanup)
+  useEffect(() => {
+    const unsub = subscribeEvents((msg) => {
+      if (msg?.type === 'party') {
+        setPartyActiveGuilds((prev) => {
+          const s = new Set(prev);
+          if (msg.active) s.add(msg.guildId); else s.delete(msg.guildId);
+          return Array.from(s);
+        });
+      } else if (msg?.type === 'snapshot') {
+        setPartyActiveGuilds(Array.isArray(msg.party) ? msg.party : []);
+      }
+    });
+    return () => { try { unsub(); } catch {} };
+  }, []);
+
+  // Aus aktivem Guild-Status die lokale Anzeige setzen
+  useEffect(() => {
+    const gid = selected ? selected.split(':')[0] : '';
+    setChaosMode(gid ? partyActiveGuilds.includes(gid) : false);
+  }, [selected, partyActiveGuilds]);
 
   // Uhrzeit (Berlin) aktualisieren
   useEffect(() => {

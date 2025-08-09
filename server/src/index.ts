@@ -975,9 +975,13 @@ app.get('/api/events', (req: Request, res: Response) => {
   // Snapshot senden
   try { res.write(`data: ${JSON.stringify({ type: 'snapshot', party: Array.from(partyActive) })}\n\n`); } catch {}
 
+  // Ping, damit Proxies die Verbindung offen halten
+  const ping = setInterval(() => { try { res.write(':\n\n'); } catch {} }, 15_000);
+
   sseClients.add(res);
   req.on('close', () => {
     sseClients.delete(res);
+    clearInterval(ping);
     try { res.end(); } catch {}
   });
 });
