@@ -63,6 +63,15 @@ export async function assignBadges(files: string[], add: string[], remove: strin
   return res.json();
 }
 
+export async function clearBadges(files: string[]) {
+  const res = await fetch(`${API_BASE}/badges/clear`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+    body: JSON.stringify({ files })
+  });
+  if (!res.ok) throw new Error('Badges löschen fehlgeschlagen');
+  return res.json();
+}
+
 export async function fetchChannels(): Promise<VoiceChannelInfo[]> {
   const res = await fetch(`${API_BASE}/channels`);
   if (!res.ok) throw new Error('Fehler beim Laden der Channels');

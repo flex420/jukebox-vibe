@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, assignBadges, updateCategory, deleteCategory } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, assignBadges, clearBadges, updateCategory, deleteCategory } from './api';
 import type { VoiceChannelInfo, Sound, Category } from './types';
 import { getCookie, setCookie } from './cookies';
 
@@ -475,28 +475,18 @@ export default function App() {
                         )}
                       </div>
 
-                      <div style={{ position:'relative' }}>
-                        <button
-                          className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
-                          onClick={()=> setShowEmojiRemovePicker(v=>!v)}
-                        >Badge entfernen</button>
-                        {showEmojiRemovePicker && (
-                          <div ref={emojiRemovePickerRef as any} className="emoji-picker" style={{ position:'absolute', top:'110%', right:0, zIndex: 99999 }}>
-                            {EMOJIS.map((e, i)=> (
-                              <button key={i} onClick={async ()=>{
-                                try{
-                                  const files = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
-                                  await assignBadges(files, [], [e]);
-                                  setShowEmojiRemovePicker(false);
-                                  setInfo('Badge entfernt'); setError(null);
-                                  const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
-                                  setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
-                                }catch(err:any){ setError(err?.message||'Badge-Entfernung fehlgeschlagen'); setInfo(null); }
-                              }}>{e}</button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <button
+                        className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
+                        onClick={async ()=>{
+                          try{
+                            const files = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
+                            await clearBadges(files);
+                            setInfo('Alle Custom-Badges entfernt'); setError(null);
+                            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
+                            setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
+                          }catch(err:any){ setError(err?.message||'Badge-Entfernung fehlgeschlagen'); setInfo(null); }
+                        }}
+                      >Badges entfernen</button>
                     </>
                   )}
 

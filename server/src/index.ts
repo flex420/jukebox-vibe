@@ -649,6 +649,19 @@ app.post('/api/badges/assign', requireAdmin, (req: Request, res: Response) => {
   res.json({ ok: true, fileBadges: fb });
 });
 
+// Alle Custom-Badges für die angegebenen Dateien entfernen
+app.post('/api/badges/clear', requireAdmin, (req: Request, res: Response) => {
+  const { files } = req.body as { files?: string[] };
+  if (!Array.isArray(files) || files.length === 0) return res.status(400).json({ error: 'files[] erforderlich' });
+  const fb = persistedState.fileBadges ?? {};
+  for (const rel of files) {
+    delete fb[rel];
+  }
+  persistedState.fileBadges = fb;
+  writePersistedState(persistedState);
+  res.json({ ok: true, fileBadges: fb });
+});
+
 app.get('/api/channels', (_req: Request, res: Response) => {
   if (!client.isReady()) return res.status(503).json({ error: 'Bot noch nicht bereit' });
 
