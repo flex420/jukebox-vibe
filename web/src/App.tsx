@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl } from './api';
-import type { VoiceChannelInfo, Sound } from './types';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories } from './api';
+import type { VoiceChannelInfo, Sound, Category } from './types';
 import { getCookie, setCookie } from './cookies';
 
 export default function App() {
@@ -9,6 +9,8 @@ export default function App() {
   const [total, setTotal] = useState<number>(0);
   const [folders, setFolders] = useState<Array<{ key: string; name: string; count: number }>>([]);
   const [activeFolder, setActiveFolder] = useState<string>('__all__');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [activeCategoryId, setActiveCategoryId] = useState<string>('');
   const [channels, setChannels] = useState<VoiceChannelInfo[]>([]);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string>('');
@@ -22,6 +24,8 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [adminPwd, setAdminPwd] = useState<string>('');
   const [selectedSet, setSelectedSet] = useState<Record<string, boolean>>({});
+  const [assignCategoryId, setAssignCategoryId] = useState<string>('');
+  const [newCategoryName, setNewCategoryName] = useState<string>('');
   const [showBroccoli, setShowBroccoli] = useState<boolean>(false);
   const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
   const [clock, setClock] = useState<string>(() => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }).format(new Date()));
@@ -47,6 +51,7 @@ export default function App() {
         setError(e?.message || 'Fehler beim Laden der Channels');
       }
       try { setIsAdmin(await adminStatus()); } catch {}
+      try { const cats = await fetchCategories(); setCategories(cats.categories || []); } catch {}
       try {
         const h = await fetch('/api/health').then(r => r.json()).catch(() => null);
         if (h && typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
@@ -67,7 +72,7 @@ export default function App() {
     (async () => {
       try {
         const folderParam = activeFolder === '__favs__' ? '__all__' : activeFolder;
-        const s = await fetchSounds(query, folderParam);
+        const s = await fetchSounds(query, folderParam, activeCategoryId || undefined);
         setSounds(s.items);
         setTotal(s.total);
         setFolders(s.folders);
@@ -75,7 +80,7 @@ export default function App() {
         setError(e?.message || 'Fehler beim Laden der Sounds');
       }
     })();
-  }, [activeFolder, query]);
+  }, [activeFolder, query, activeCategoryId]);
 
   // Favoriten aus Cookie laden
   useEffect(() => {
@@ -413,7 +418,43 @@ export default function App() {
                       } catch (e:any) { setError(e?.message||'Umbenennen fehlgeschlagen'); }
                     }} />
                   )}
+                  {/* Kategorien-Zuweisung */}
+                  {selectedCount > 0 && (
+                    <>
+                      <select className="input-field" value={assignCategoryId} onChange={(e)=>setAssignCategoryId(e.target.value)} style={{maxWidth:200}}>
+                        <option value="">Kategorie wählen…</option>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      <button
+                        className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
+                        onClick={async ()=>{
+                          try{
+                            const files = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
+                            if(!assignCategoryId){ setError('Bitte Kategorie wählen'); return; }
+                            await assignCategories(files, [assignCategoryId], []);
+                            setInfo('Kategorie zugewiesen'); setError(null);
+                            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
+                            setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
+                          }catch(e:any){ setError(e?.message||'Zuweisung fehlgeschlagen'); setInfo(null); }
+                        }}
+                      >Zu Kategorie</button>
+                    </>
+                  )}
+
                   <div className="flex-1" />
+
+                  {/* Kategorie anlegen */}
+                  <input className="input-field" placeholder="Neue Kategorie" value={newCategoryName} onChange={(e)=>setNewCategoryName(e.target.value)} style={{maxWidth:200}} />
+                  <button className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async()=>{
+                    try{
+                      const n = newCategoryName.trim(); if(!n){ setError('Name fehlt'); return; }
+                      await createCategory(n);
+                      setNewCategoryName('');
+                      const cats = await fetchCategories(); setCategories(cats.categories || []);
+                      setInfo('Kategorie erstellt'); setError(null);
+                    }catch(e:any){ setError(e?.message||'Anlegen fehlgeschlagen'); setInfo(null); }
+                  }}>Anlegen</button>
+
                   <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async ()=>{ try{ await adminLogout(); setIsAdmin(false); clearSelection(); } catch{} }}>Logout</button>
                 </div>
               )}
@@ -435,7 +476,7 @@ export default function App() {
                   className={`tag-btn ${activeFolder===f.key?'active':''}`}
                   onClick={async ()=>{
                     setActiveFolder(f.key);
-                    const resp=await fetchSounds(undefined, f.key);
+                    const resp=await fetchSounds(undefined, f.key, activeCategoryId || undefined);
                     setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
                   }}
                 >
@@ -443,6 +484,14 @@ export default function App() {
                 </button>
               );
             })}
+            {categories.length > 0 && (
+              <>
+                <button className={`tag-btn ${!activeCategoryId ? 'active' : ''}`} onClick={()=> setActiveCategoryId('')}>Alle Kategorien</button>
+                {categories.map(cat => (
+                  <button key={cat.id} className={`tag-btn ${activeCategoryId===cat.id?'active':''}`} onClick={()=> setActiveCategoryId(cat.id)}>{cat.name}</button>
+                ))}
+              </>
+            )}
           </div>
         </div>
 
