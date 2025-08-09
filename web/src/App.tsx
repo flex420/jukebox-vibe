@@ -319,9 +319,22 @@ export default function App() {
         <div className="bg-transparent mb-8">
           <div className="flex flex-wrap gap-3 text-sm">
             <button className={`tag-btn ${activeFolder==='__favs__'?'active':''}`} onClick={()=>setActiveFolder('__favs__')}>Favoriten ({favCount})</button>
-            {folders.map(f=> (
-              <button key={f.key} className={`tag-btn ${activeFolder===f.key?'active':''}`} onClick={async ()=>{ setActiveFolder(f.key); const resp=await fetchSounds(undefined, f.key); setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders); }}>{f.name} ({f.count})</button>
-            ))}
+            {folders.map(f=> {
+              const displayName = f.name.replace(/\s*\(\d+\)\s*$/, '');
+              return (
+                <button
+                  key={f.key}
+                  className={`tag-btn ${activeFolder===f.key?'active':''}`}
+                  onClick={async ()=>{
+                    setActiveFolder(f.key);
+                    const resp=await fetchSounds(undefined, f.key);
+                    setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
+                  }}
+                >
+                  {displayName} ({f.count})
+                </button>
+              );
+            })}
           </div>
         </div>
 
