@@ -586,7 +586,20 @@ export default function App() {
                     onChange={(e)=>{ e.stopPropagation(); toggleSelect(key, e.target.checked); }}
                   />
                 )}
-                <div className="sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer" onClick={()=>handlePlay(s.name, s.relativePath)}>
+                <div className="sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer"
+                     onClick={async ()=>{
+                       // Rainbow-Flash für 1s im Rainbow-Theme
+                       try {
+                         if (theme === 'rainbow') {
+                           const el = (event?.currentTarget as HTMLDivElement | undefined);
+                           if (el) {
+                             el.classList.add('rainbow-flash');
+                             setTimeout(()=> el.classList.remove('rainbow-flash'), 1000);
+                           }
+                         }
+                       } catch {}
+                       await handlePlay(s.name, s.relativePath);
+                     }}>
                   <span className="text-sm font-medium truncate pr-2">
                     {s.name}
                     {Array.isArray((s as any).badges) && (s as any).badges!.map((b:string, i:number)=> (
