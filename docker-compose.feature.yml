@@ -6,12 +6,13 @@ services:
     container_name: jukebox-feature
     restart: unless-stopped
     ports:
-      - "3001:3000"  # Anderer Port für Feature Testing
+      - "8199:8080"  # Gleicher Port wie Stable
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - CLIENT_ID=${CLIENT_ID}
       - GUILD_ID=${GUILD_ID}
       - ADMIN_PWD=${ADMIN_PWD}
+      - REACT_APP_VERSION=nightly
     volumes:
       - ./data/sounds:/data/sounds
       - ./data/uploads:/data/uploads

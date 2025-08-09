@@ -15,16 +15,16 @@ git push -u origin feature/mein-experiment
 
 ### 3. Feature Version testen
 ```bash
-# Feature Version starten (Port 3001)
+# Feature Version starten (ersetzt Stable Version)
 docker-compose -f docker-compose.feature.yml up -d
 
-# Hauptversion läuft weiter auf Port 3000
-# Feature Version läuft auf Port 3001
+# Beide Versionen verwenden Port 8199
+# Nightly Version zeigt "Nightly" Badge im Header
 ```
 
 ### 4. In Portainer
-- **Hauptversion:** `flex420/discordsoundbot-vib:latest` (Port 3000)
-- **Feature Version:** `flex420/discordsoundbot-vib:feature-nightly` (Port 3001)
+- **Stable Version:** `flex420/discordsoundbot-vib:latest` (Port 8199)
+- **Nightly Version:** `flex420/discordsoundbot-vib:feature-nightly` (Port 8199)
 
 ### 5. Mergen wenn bereit
 ```bash
@@ -42,7 +42,7 @@ git branch -d feature/mein-experiment
 - `:sha-abc123` - Spezifischer Commit
 
 ## Portainer Setup
-1. **Hauptcontainer:** Port 3000, Image `:latest`
-2. **Feature Container:** Port 3001, Image `:feature-nightly`
-3. **Testing:** Feature auf Port 3001 testen
+1. **Stable Container:** Port 8199, Image `:latest`
+2. **Nightly Container:** Port 8199, Image `:feature-nightly`
+3. **Testing:** Nightly Version zeigt "Nightly" Badge im Header
 4. **Deployment:** Wenn gut, Feature in main mergen
