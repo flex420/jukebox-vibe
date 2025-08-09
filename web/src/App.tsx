@@ -30,7 +30,6 @@ export default function App() {
   const [chaosMode, setChaosMode] = useState<boolean>(false);
   const chaosTimeoutRef = useRef<number | null>(null);
   const chaosModeRef = useRef<boolean>(false);
-  const [buildInfo, setBuildInfo] = useState<{version: string, channel: string}>({version: '1.0.0', channel: 'stable'});
   useEffect(() => { chaosModeRef.current = chaosMode; }, [chaosMode]);
 
   useEffect(() => {
@@ -47,12 +46,11 @@ export default function App() {
       } catch (e: any) {
         setError(e?.message || 'Fehler beim Laden der Channels');
       }
-             try { setIsAdmin(await adminStatus()); } catch {}
-       try {
-         const h = await fetch('/api/health').then(r => r.json()).catch(() => null);
-         if (h && typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
-         if (h && h.buildInfo) setBuildInfo(h.buildInfo);
-       } catch {}
+      try { setIsAdmin(await adminStatus()); } catch {}
+      try {
+        const h = await fetch('/api/health').then(r => r.json()).catch(() => null);
+        if (h && typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
+      } catch {}
     })();
   }, []);
 
@@ -117,7 +115,6 @@ export default function App() {
       try {
         const h = await fetch('/api/health').then(r => r.json()).catch(() => null);
         if (h && typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
-        if (h && h.buildInfo) setBuildInfo(h.buildInfo);
       } catch {}
     };
     
@@ -255,14 +252,14 @@ export default function App() {
         <header className="flex items-center justify-between p-6">
           <div className="flex items-center">
             <div>
-                             <h1 className="text-4xl font-bold">
+               <h1 className="text-4xl font-bold">
                  Jukebox 420
-                 <div className="text-sm font-normal mt-1 opacity-70">
-                   v{buildInfo.version}
-                   {buildInfo.channel === 'nightly' && (
+                 {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
+                   <div className="text-sm font-normal mt-1 opacity-70">
+                     v{import.meta.env.VITE_APP_VERSION || ''}
                      <span className="ml-2" style={{ color: '#ff4d4f' }}>• Nightly</span>
-                   )}
-                 </div>
+                   </div>
+                 )}
                </h1>
               <p className="text-7xl font-bold mt-2">{clock}</p>
             </div>
