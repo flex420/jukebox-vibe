@@ -323,7 +323,7 @@ export default function App() {
         {error && <div className="error">{error}</div>}
         {info && <div className="badge" style={{ background:'rgba(34,197,94,.18)', borderColor:'rgba(34,197,94,.35)' }}>{info}</div>}
 
-        <main className="flex flex-wrap gap-3">
+        <main className="sounds-flow">
           {(activeFolder === '__favs__' ? filtered.filter((s) => !!favs[s.relativePath ?? s.fileName]) : filtered).map((s) => {
             const key = `${s.relativePath ?? s.fileName}`;
             const isFav = !!favs[key];
@@ -337,7 +337,7 @@ export default function App() {
                     onChange={(e)=>{ e.stopPropagation(); toggleSelect(key, e.target.checked); }}
                   />
                 )}
-                <div className="sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer min-w-[200px] max-w-[300px]" onClick={()=>handlePlay(s.name, s.relativePath)}>
+                <div className="sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer" onClick={()=>handlePlay(s.name, s.relativePath)}>
                   <span className="text-sm font-medium truncate pr-2">{s.name}</span>
                   <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button className="text-gray-400 hover:text-[var(--accent-blue)]" onClick={(e)=>{e.stopPropagation(); setFavs(prev=>({ ...prev, [key]: !prev[key] }));}}><span className="material-icons text-xl">{isFav?'star':'star_border'}</span></button>

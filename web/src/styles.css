@@ -532,6 +532,16 @@ header p {
 .error { background: rgba(255, 99, 99, .12); color: #ffd1d1; border: 1px solid rgba(255, 99, 99, .3); padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+
+/* Lineares, responsives Flow-Layout für Sounds */
+.sounds-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.sounds-flow .sound-wrap {
+  flex: 0 1 220px; /* Basisbreite wie zuvor im Grid */
+}
 .sound-wrap { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
 .sound-wrap.row .sound { width: 100%; }
 .row-check { width: 18px; height: 18px; accent-color: #60a5fa; }
