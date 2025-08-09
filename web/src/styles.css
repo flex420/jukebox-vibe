@@ -451,6 +451,7 @@ header p {
 .emoji-picker {
   display: grid; grid-template-columns: repeat(10, 2rem); gap: .25rem; padding: .5rem;
   max-height: 260px; overflow: auto; background: #0f1530; border:1px solid rgba(255,255,255,.28); border-radius: 12px;
+  box-shadow: 0 24px 48px rgba(0,0,0,.6);
 }
 .emoji-picker button { background: transparent; border: 0; font-size: 1.25rem; cursor: pointer; }
 .emoji-picker button:hover { filter: brightness(1.2); }

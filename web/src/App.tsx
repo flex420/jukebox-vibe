@@ -29,9 +29,9 @@ export default function App() {
   const [editingCategoryId, setEditingCategoryId] = useState<string>('');
   const [editingCategoryName, setEditingCategoryName] = useState<string>('');
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
-  const [showEmojiRemovePicker, setShowEmojiRemovePicker] = useState<boolean>(false);
   const emojiPickerRef = useRef<HTMLDivElement|null>(null);
-  const emojiRemovePickerRef = useRef<HTMLDivElement|null>(null);
+  const emojiTriggerRef = useRef<HTMLButtonElement|null>(null);
+  const [emojiPos, setEmojiPos] = useState<{left:number; top:number}>({ left: 0, top: 0 });
   const EMOJIS = useMemo(()=>{
     // einfache, breite Auswahl gängiger Emojis; kann später erweitert/extern geladen werden
     const groups = [
@@ -454,11 +454,18 @@ export default function App() {
                       {/* Custom Badge Picker */}
                       <div style={{ position:'relative' }}>
                         <button
+                          ref={emojiTriggerRef}
                           className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
-                          onClick={()=> setShowEmojiPicker(v=>!v)}
+                          onClick={()=> {
+                            try{
+                              const r = emojiTriggerRef.current?.getBoundingClientRect();
+                              if(r){ setEmojiPos({ left: r.left, top: r.bottom + 8 }); }
+                            }catch{}
+                            setShowEmojiPicker(v=>!v);
+                          }}
                         >Custom Emoji</button>
                         {showEmojiPicker && (
-                          <div ref={emojiPickerRef as any} className="emoji-picker" style={{ position:'absolute', top:'110%', right:0, zIndex: 99999 }}>
+                          <div ref={emojiPickerRef as any} className="emoji-picker" style={{ position:'fixed', left: emojiPos.left, top: emojiPos.top, zIndex: 999999 }}>
                             {EMOJIS.map((e, i)=> (
                               <button key={i} onClick={async ()=>{
                                 try{
