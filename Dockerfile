@@ -6,9 +6,9 @@ WORKDIR /app/web
 COPY web/package*.json ./
 RUN npm install --no-audit --no-fund
 COPY web/ .
-# Umgebungsvariable für React Build verfügbar machen
-ARG REACT_APP_VERSION=stable
-ENV REACT_APP_VERSION=$REACT_APP_VERSION
+# Umgebungsvariable für React Build verfügbar machen (Vite liest nur VITE_*)
+ARG VITE_BUILD_CHANNEL=stable
+ENV VITE_BUILD_CHANNEL=$VITE_BUILD_CHANNEL
 RUN npm run build
 
 # --- Build server (npm) ---

@@ -179,8 +179,8 @@ export default function App() {
             <div>
               <h1 className="text-4xl font-bold">
                 Jukebox 420
-                {process.env.REACT_APP_VERSION === 'nightly' && (
-                  <span className="text-sm text-red-400 ml-2">Nightly</span>
+                {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
+                  <span className="text-sm font-semibold ml-2" style={{ color: '#ff4d4f' }}>Nightly Build</span>
                 )}
               </h1>
               <p className="text-7xl font-bold mt-2">{clock}</p>
