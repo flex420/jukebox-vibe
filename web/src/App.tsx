@@ -252,12 +252,15 @@ export default function App() {
         <header className="flex items-center justify-between p-6">
           <div className="flex items-center">
             <div>
-              <h1 className="text-4xl font-bold">
-                Jukebox 420
-                {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
-                  <span className="text-sm font-semibold ml-2" style={{ color: '#ff4d4f' }}>Nightly Build</span>
-                )}
-              </h1>
+                             <h1 className="text-4xl font-bold">
+                 Jukebox 420
+                 <div className="text-sm font-normal mt-1 opacity-70">
+                   v{import.meta.env.VITE_APP_VERSION || '1.0.0'}
+                   {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
+                     <span className="ml-2" style={{ color: '#ff4d4f' }}>• Nightly</span>
+                   )}
+                 </div>
+               </h1>
               <p className="text-7xl font-bold mt-2">{clock}</p>
             </div>
           </div>

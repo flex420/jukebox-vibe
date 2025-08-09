@@ -24,15 +24,19 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Generate Docker tag
+      - name: Generate Docker tag and version
         id: docker_tag
         run: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "tag=main" >> $GITHUB_OUTPUT
+            echo "version=1.0.0" >> $GITHUB_OUTPUT
+            echo "channel=stable" >> $GITHUB_OUTPUT
           else
             # Ersetze Slashes durch Bindestriche für gültige Docker Tags
             CLEAN_TAG=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
             echo "tag=$CLEAN_TAG" >> $GITHUB_OUTPUT
+            echo "version=1.0.0-nightly" >> $GITHUB_OUTPUT
+            echo "channel=nightly" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push
@@ -41,7 +45,8 @@ jobs:
           context: .
           push: true
           build-args: |
-            VITE_BUILD_CHANNEL=${{ steps.docker_tag.outputs.tag == 'main' && 'stable' || 'nightly' }}
+            VITE_BUILD_CHANNEL=${{ steps.docker_tag.outputs.channel }}
+            VITE_APP_VERSION=${{ steps.docker_tag.outputs.version }}
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}

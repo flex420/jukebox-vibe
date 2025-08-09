@@ -7,7 +7,8 @@ services:
     env_file:
       - .env
     environment:
-      - REACT_APP_VERSION=stable
+      - VITE_BUILD_CHANNEL=stable
+      - VITE_APP_VERSION=1.0.0
     volumes:
       - ./data/sounds:/data/sounds
     restart: unless-stopped
