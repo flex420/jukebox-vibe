@@ -575,6 +575,8 @@ header p {
   padding: 12px 16px; /* gleichmäßiges Padding links/rechts */
   justify-content: center; /* Text zentrieren */
 }
+/* Soundbutton-Text minimal kräftiger als 500 */
+.sounds-flow .sound-btn > span { font-weight: 501 !important; }
 .sound-wrap { position: relative; display: block; }
 .sound-wrap.row .sound { width: 100%; }
 .row-check { width: 18px; height: 18px; accent-color: #60a5fa; }
