@@ -39,6 +39,7 @@ export default function App() {
     return groups.join('').split('');
   }, []);
   const [showBroccoli, setShowBroccoli] = useState<boolean>(false);
+  const [flashMap, setFlashMap] = useState<Record<string, boolean>>({});
   const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
   const [clock, setClock] = useState<string>(() => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }).format(new Date()));
   const [totalPlays, setTotalPlays] = useState<number>(0);
@@ -594,18 +595,15 @@ export default function App() {
                     onChange={(e)=>{ e.stopPropagation(); toggleSelect(key, e.target.checked); }}
                   />
                 )}
-                <div className="sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer"
-                     onClick={async (e)=>{
-                       // Rainbow-Flash für 1s im Rainbow-Theme
-                       try {
-                         if (theme === 'rainbow') {
-                           const el = (e.currentTarget as HTMLDivElement | undefined);
-                           if (el) {
-                             el.classList.add('rainbow-flash');
-                             setTimeout(()=> el.classList.remove('rainbow-flash'), 2000);
-                           }
-                         }
-                       } catch {}
+                <div className={`sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer ${flashMap[key] ? 'rainbow-flash' : ''}`}
+                     onClick={async ()=>{
+                       // Rainbow-Flash via State, damit Re-Render die Klasse erhält
+                       if (theme === 'rainbow') {
+                         setFlashMap(prev => ({ ...prev, [key]: true }));
+                         setTimeout(() => {
+                           setFlashMap(prev => { const n = { ...prev }; delete n[key]; return n; });
+                         }, 2000);
+                       }
                        await handlePlay(s.name, s.relativePath);
                      }}>
                   <span className="text-sm font-medium truncate pr-2">
