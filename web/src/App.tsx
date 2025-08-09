@@ -587,11 +587,11 @@ export default function App() {
                   />
                 )}
                 <div className="sound-btn group rounded-xl flex items-center justify-between p-3 cursor-pointer"
-                     onClick={async ()=>{
+                     onClick={async (e)=>{
                        // Rainbow-Flash für 1s im Rainbow-Theme
                        try {
                          if (theme === 'rainbow') {
-                           const el = (event?.currentTarget as HTMLDivElement | undefined);
+                           const el = (e.currentTarget as HTMLDivElement | undefined);
                            if (el) {
                              el.classList.add('rainbow-flash');
                              setTimeout(()=> el.classList.remove('rainbow-flash'), 1000);
