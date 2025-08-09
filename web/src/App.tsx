@@ -38,6 +38,12 @@ export default function App() {
       '😀😁😂🤣😅😊🙂😉😍😘😜🤪🤗🤔🤩🥳😎😴🤤','😇🥰🥺😡🤬😱😭🙈🙉🙊💀👻🤖🎃','👍👎👏🙌🙏🤝💪🔥✨💥🎉🎊','❤️🧡💛💚💙💜🖤🤍🤎💖💘💝','⭐🌟🌈☀️🌙⚡❄️☔🌊🍀','🎵🎶🎧🎤🎸🥁🎹🎺🎻','🍕🍔🍟🌭🌮🍣🍺🍻🍷🥂','🐶🐱🐼🐸🦄🐧🐢🦖🐙','🚀🛸✈️🚁🚗🏎️🚓🚒','🏆🥇🥈🥉🎯🎮🎲🧩']
     return groups.join('').split('');
   }, []);
+
+  function emojiToTwemojiUrl(emoji: string): string {
+    const codePoints = Array.from(emoji).map(ch => ch.codePointAt(0)!.toString(16)).join('-');
+    // twemoji svg assets
+    return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codePoints}.svg`;
+  }
   const [showBroccoli, setShowBroccoli] = useState<boolean>(false);
   const [flashMap, setFlashMap] = useState<Record<string, boolean>>({});
   const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
@@ -477,7 +483,9 @@ export default function App() {
                                   const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
                                   setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
                                 }catch(err:any){ setError(err?.message||'Badge-Update fehlgeschlagen'); setInfo(null); }
-                              }}>{e}</button>
+                              }}>
+                                <img alt={e} src={emojiToTwemojiUrl(e)} />
+                              </button>
                             ))}
                           </div>,
                           document.body
