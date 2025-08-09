@@ -640,6 +640,7 @@ header p {
   border-radius: 0.5rem;
   background: #374151; /* bg-gray-700 */
   color: #ffffff;
+  font-size: .875rem; /* einheitliche Schriftgröße wie andere Themes */
   font-weight: 700;
   border: none;
   transition: background-color .2s ease, transform .2s ease;
