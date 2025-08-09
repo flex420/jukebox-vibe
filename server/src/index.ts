@@ -514,7 +514,9 @@ app.post('/api/admin/sounds/rename', requireAdmin, (req: Request, res: Response)
   const src = path.join(SOUNDS_DIR, from);
   // Ziel nur Name ändern, Endung mp3 sicherstellen
   const parsed = path.parse(from);
-  const dstRel = path.join(parsed.dir || '', `${to.replace(/[^a-zA-Z0-9_.\-]/g, '_')}.mp3`);
+  // UTF-8 Zeichen erlauben: Leerzeichen, Umlaute, etc. - nur problematische Zeichen filtern
+  const sanitizedName = to.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+  const dstRel = path.join(parsed.dir || '', `${sanitizedName}.mp3`);
   const dst = path.join(SOUNDS_DIR, dstRel);
   try {
     if (!fs.existsSync(src)) return res.status(404).json({ error: 'Quelle nicht gefunden' });
