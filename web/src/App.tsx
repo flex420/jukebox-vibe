@@ -566,14 +566,14 @@ export default function App() {
                 </button>
               );
             })}
-            {categories.length > 0 && (
-              <>
-                {categories.map(cat => (
-                  <button key={cat.id} className={`tag-btn ${activeCategoryId===cat.id?'active':''}`} onClick={()=> setActiveCategoryId(cat.id)}>{cat.name}</button>
-                ))}
-              </>
-            )}
           </div>
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-3 text-sm mt-3">
+              {categories.map(cat => (
+                <button key={cat.id} className={`tag-btn ${activeCategoryId===cat.id?'active':''}`} onClick={()=> setActiveCategoryId(cat.id)}>{cat.name}</button>
+              ))}
+            </div>
+          )}
         </div>
 
         <main className="sounds-flow">
