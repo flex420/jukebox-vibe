@@ -303,6 +303,12 @@ body {
 
 .container { width: 90vw; max-width: 1800px; margin: 0 auto; padding: 28px; }
 
+/* Nightly Build: volle Breite (mind. 90% der Anzeige), kein max-width-Limit */
+[data-build="nightly"] .container {
+  width: 90vw;
+  max-width: none;
+}
+
 /* Neuer Header-Style basierend auf Google Stitch Design */
 header { 
   display: flex; 

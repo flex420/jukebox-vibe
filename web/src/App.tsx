@@ -89,6 +89,11 @@ export default function App() {
   // Theme anwenden/persistieren
   useEffect(() => {
     document.body.setAttribute('data-theme', theme);
+    if (import.meta.env.VITE_BUILD_CHANNEL === 'nightly') {
+      document.body.setAttribute('data-build', 'nightly');
+    } else {
+      document.body.removeAttribute('data-build');
+    }
     localStorage.setItem('theme', theme);
   }, [theme]);
 
