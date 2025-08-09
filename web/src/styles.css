@@ -632,7 +632,12 @@ header p {
 
 .hint { opacity: .7; padding: 24px 0; }
 
-/* footer-info entfernt */
+/* Footer mit Version/Build-Kanal */
+.footer-info {
+  opacity: .7;
+  font-size: 12px;
+  padding: 16px 0 8px;
+}
 
 .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 .tab {
