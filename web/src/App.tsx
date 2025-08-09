@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, assignBadges, clearBadges, updateCategory, deleteCategory, partyStart, partyStop } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, clearBadges, updateCategory, deleteCategory, partyStart, partyStop } from './api';
 import type { VoiceChannelInfo, Sound, Category } from './types';
 import { getCookie, setCookie } from './cookies';
 
@@ -461,39 +461,7 @@ export default function App() {
                         }}
                       >Zu Kategorie</button>
 
-                      {/* Custom Badge Picker */}
-                      <div style={{ position:'relative' }}>
-                        <button
-                          ref={emojiTriggerRef}
-                          className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
-                          onClick={()=> {
-                            try{
-                              const r = emojiTriggerRef.current?.getBoundingClientRect();
-                              if(r){ setEmojiPos({ left: r.left, top: r.bottom + 8 }); }
-                            }catch{}
-                            setShowEmojiPicker(v=>!v);
-                          }}
-                        >Custom Emoji</button>
-                        {showEmojiPicker && typeof document !== 'undefined' && ReactDOM.createPortal(
-                          <div ref={emojiPickerRef as any} className="emoji-picker" style={{ position:'fixed', left: emojiPos.left, top: emojiPos.top, zIndex: 300000 }}>
-                            {EMOJIS.map((e, i)=> (
-                              <button key={i} onClick={async ()=>{
-                                try{
-                                  const files = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
-                                  await assignBadges(files, [e], []);
-                                  setShowEmojiPicker(false);
-                                  setInfo('Badge gesetzt'); setError(null);
-                                  const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
-                                  setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
-                                }catch(err:any){ setError(err?.message||'Badge-Update fehlgeschlagen'); setInfo(null); }
-                              }}>
-                                <img alt={e} src={emojiToTwemojiUrl(e)} />
-                              </button>
-                            ))}
-                          </div>,
-                          document.body
-                        )}
-                      </div>
+                      {/* Custom Emoji Feature entfernt */}
 
                       <button
                         className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
