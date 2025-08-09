@@ -306,7 +306,7 @@ export default function App() {
                  Jukebox 420
                  {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
                    <div className="text-sm font-normal mt-1 opacity-70">
-                     v{import.meta.env.VITE_APP_VERSION || ''}
+                    v{import.meta.env.VITE_APP_VERSION || '1.1.0'}
                      <span className="ml-2" style={{ color: '#ff4d4f' }}>• Nightly</span>
                    </div>
                  )}

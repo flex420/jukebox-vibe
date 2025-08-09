@@ -8,7 +8,7 @@ RUN npm install --no-audit --no-fund
 COPY web/ .
 # Umgebungsvariable für React Build verfügbar machen (Vite liest nur VITE_*)
 ARG VITE_BUILD_CHANNEL=stable
-ARG VITE_APP_VERSION=1.0.0
+ARG VITE_APP_VERSION=1.1.0
 ENV VITE_BUILD_CHANNEL=$VITE_BUILD_CHANNEL
 ENV VITE_APP_VERSION=$VITE_APP_VERSION
 RUN npm run build
