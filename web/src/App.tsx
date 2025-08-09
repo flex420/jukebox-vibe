@@ -28,7 +28,7 @@ export default function App() {
   const [totalPlays, setTotalPlays] = useState<number>(0);
   const [mediaUrl, setMediaUrl] = useState<string>('');
   const [chaosMode, setChaosMode] = useState<boolean>(false);
-  const chaosIntervalRef = useRef<number | null>(null);
+  const chaosTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -167,12 +167,14 @@ export default function App() {
     }
   }
 
-  // CHAOS Mode Funktionen
+  // CHAOS Mode Funktionen (zufällige Wiedergabe alle 1-3 Minuten)
   const startChaosMode = async () => {
     if (!selected || !sounds.length) return;
-    
+
     const playRandomSound = async () => {
-      const randomSound = sounds[Math.floor(Math.random() * sounds.length)];
+      const pool = sounds;
+      if (!pool.length || !selected) return;
+      const randomSound = pool[Math.floor(Math.random() * pool.length)];
       const [guildId, channelId] = selected.split(':');
       try {
         await playSound(randomSound.name, guildId, channelId, volume, randomSound.relativePath);
@@ -181,23 +183,22 @@ export default function App() {
       }
     };
 
-    // Sofort ersten Sound abspielen
-    await playRandomSound();
+    const scheduleNextPlay = async () => {
+      if (!chaosMode) return;
+      await playRandomSound();
+      const delay = 60_000 + Math.floor(Math.random() * 120_000); // 1-3 Minuten
+      chaosTimeoutRef.current = window.setTimeout(scheduleNextPlay, delay);
+    };
 
-    // Interval für weitere zufällige Sounds (2-6 Minuten)
-    const interval = setInterval(async () => {
-      if (chaosMode) {
-        await playRandomSound();
-      }
-    }, Math.random() * (6 - 2) * 60 * 1000 + 2 * 60 * 1000); // 2-6 Minuten
-
-    chaosIntervalRef.current = interval;
+    // ersten Start zufällig zwischen 1-3 Minuten planen
+    const firstDelay = 60_000 + Math.floor(Math.random() * 120_000);
+    chaosTimeoutRef.current = window.setTimeout(scheduleNextPlay, firstDelay);
   };
 
   const stopChaosMode = async () => {
-    if (chaosIntervalRef.current) {
-      clearInterval(chaosIntervalRef.current);
-      chaosIntervalRef.current = null;
+    if (chaosTimeoutRef.current) {
+      clearTimeout(chaosTimeoutRef.current);
+      chaosTimeoutRef.current = null;
     }
     
     // Alle Sounds stoppen (wie Panic Button)
@@ -224,8 +225,8 @@ export default function App() {
   // Cleanup bei Komponenten-Unmount
   useEffect(() => {
     return () => {
-      if (chaosIntervalRef.current) {
-        clearInterval(chaosIntervalRef.current);
+      if (chaosTimeoutRef.current) {
+        clearTimeout(chaosTimeoutRef.current);
       }
     };
   }, []);
