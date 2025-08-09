@@ -553,6 +553,8 @@ header p {
   width: auto;
   max-width: 260px; /* verhindert überlange Buttons, mehr Cards pro Zeile */
   white-space: nowrap; /* einzeilig */
+  padding: 12px 16px; /* gleichmäßiges Padding links/rechts */
+  justify-content: center; /* Text zentrieren */
 }
 .sound-wrap { position: relative; display: block; }
 .sound-wrap.row .sound { width: 100%; }
