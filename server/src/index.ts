@@ -485,7 +485,50 @@ app.get('/api/sounds', (req: Request, res: Response) => {
       itemsByFolder = allItems.filter((it) => (folderFilter === '' ? it.folder === '' : it.folder === folderFilter));
     }
   }
-  const filteredItems = itemsByFolder.filter((s) => (q ? s.name.toLowerCase().includes(q) : true));
+  // Fuzzy-Score: bevorzugt Präfixe, zusammenhängende Treffer und frühe Positionen
+  function fuzzyScore(text: string, pattern: string): number {
+    if (!pattern) return 1;
+    if (text === pattern) return 2000;
+    const idx = text.indexOf(pattern);
+    if (idx !== -1) {
+      let base = 1000;
+      if (idx === 0) base += 200; // Präfix-Bonus
+      return base - idx * 2; // leichte Positionsstrafe
+    }
+    // subsequence Matching
+    let textIndex = 0;
+    let patIndex = 0;
+    let score = 0;
+    let lastMatch = -1;
+    let gaps = 0;
+    let firstMatchPos = -1;
+    while (textIndex < text.length && patIndex < pattern.length) {
+      if (text[textIndex] === pattern[patIndex]) {
+        if (firstMatchPos === -1) firstMatchPos = textIndex;
+        if (lastMatch === textIndex - 1) {
+          score += 5; // zusammenhängende Treffer belohnen
+        }
+        lastMatch = textIndex;
+        patIndex++;
+      } else if (firstMatchPos !== -1) {
+        gaps++;
+      }
+      textIndex++;
+    }
+    if (patIndex !== pattern.length) return 0; // nicht alle Pattern-Zeichen gefunden
+    score += Math.max(0, 300 - firstMatchPos * 2); // frühe Starts belohnen
+    score += Math.max(0, 100 - gaps * 10); // weniger Lücken belohnen
+    return score;
+  }
+
+  let filteredItems = itemsByFolder;
+  if (q) {
+    const scored = itemsByFolder
+      .map((it) => ({ it, score: fuzzyScore(it.name.toLowerCase(), q) }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => (b.score - a.score) || a.it.name.localeCompare(b.it.name));
+    filteredItems = scored.map((x) => x.it);
+  }
 
   const total = allItems.length;
   const recentCount = Math.min(10, total);

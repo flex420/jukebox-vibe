@@ -186,11 +186,8 @@ export default function App() {
     })();
   }, [selected]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return sounds;
-    return sounds.filter((s) => s.name.toLowerCase().includes(q));
-  }, [sounds, query]);
+  // Server liefert bereits gefilterte (und ggf. fuzzy-sortierte) Ergebnisse
+  const filtered = sounds;
 
   const favCount = useMemo(() => Object.values(favs).filter(Boolean).length, [favs]);
 
