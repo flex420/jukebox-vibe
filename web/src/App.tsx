@@ -325,13 +325,6 @@ export default function App() {
               <button className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => {
                 try { const res = await fetch('/api/sounds'); const data = await res.json(); const items = data?.items || []; if (!items.length || !selected) return; const rnd = items[Math.floor(Math.random()*items.length)]; const [guildId, channelId] = selected.split(':'); await playSound(rnd.name, guildId, channelId, volume, rnd.relativePath);} catch {}
               }}>Random</button>
-              <button
-                className={`font-bold py-3 px-6 rounded-lg transition duration-300 ${fuzzy ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
-                onClick={() => setFuzzy((v) => !v)}
-                title="Fuzzy-Suche umschalten"
-              >
-                Fuzzy {fuzzy ? 'ON' : 'OFF'}
-              </button>
               <button 
                  className={`font-bold py-3 px-6 rounded-lg transition duration-300 ${
                    chaosMode 
@@ -349,9 +342,20 @@ export default function App() {
 
         <div className="control-panel rounded-xl p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-center">
-            <div className="relative">
-              <input className="input-field pl-10 with-left-icon" placeholder="Nach Sounds suchen..." value={query} onChange={(e)=>setQuery(e.target.value)} />
-              <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>search</span>
+            <div className="flex items-center gap-3">
+              <button
+                className={`font-bold p-3 rounded-lg transition duration-300 ${fuzzy ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+                onClick={() => setFuzzy((v) => !v)}
+                title="Fuzzy-Suche umschalten"
+                aria-label="Fuzzy-Suche umschalten"
+                aria-pressed={fuzzy}
+              >
+                <span className="material-icons" aria-hidden="true">blur_on</span>
+              </button>
+              <div className="relative flex-1">
+                <input className="input-field pl-10 with-left-icon w-full" placeholder="Nach Sounds suchen..." value={query} onChange={(e)=>setQuery(e.target.value)} />
+                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>search</span>
+              </div>
             </div>
             <div className="relative">
               <CustomSelect channels={channels} value={selected} onChange={setSelected} />
