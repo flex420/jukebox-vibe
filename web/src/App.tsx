@@ -15,6 +15,7 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [fuzzy, setFuzzy] = useState<boolean>(false);
   const [selected, setSelected] = useState<string>('');
+  const selectedRef = useRef<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -55,6 +56,7 @@ export default function App() {
   const chaosTimeoutRef = useRef<number | null>(null);
   const chaosModeRef = useRef<boolean>(false);
   useEffect(() => { chaosModeRef.current = chaosMode; }, [chaosMode]);
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
 
   useEffect(() => {
     (async () => {
@@ -97,7 +99,8 @@ export default function App() {
         setPartyActiveGuilds(Array.isArray(msg.party) ? msg.party : []);
         try {
           const sel = msg?.selected || {};
-          const gid = selected ? selected.split(':')[0] : '';
+          const currentSelected = selectedRef.current || '';
+          const gid = currentSelected ? currentSelected.split(':')[0] : '';
           if (gid && sel[gid]) {
             const newVal = `${gid}:${sel[gid]}`;
             setSelected(newVal);
@@ -108,7 +111,8 @@ export default function App() {
           const gid = msg.guildId;
           const cid = msg.channelId;
           if (gid && cid) {
-            const curGid = selected ? selected.split(':')[0] : '';
+            const currentSelected = selectedRef.current || '';
+            const curGid = currentSelected ? currentSelected.split(':')[0] : '';
             if (curGid === gid) setSelected(`${gid}:${cid}`);
           }
         } catch {}
