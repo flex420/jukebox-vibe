@@ -35,6 +35,11 @@ git push origin main
 git branch -d feature/mein-experiment
 ```
 
+## Versionierung & Changelog
+- Versionen werden in `README.md` (Badge) gepflegt
+- Änderungen dokumentieren wir in `CHANGELOG.md`
+- Nightly-Entwicklung: Features zuerst im Branch `feature/nightly`, Merge nach `main` für Release
+
 ## Docker Images
 - `:latest` - Hauptversion (main branch)
 - `:feature-nightly` - Feature Version

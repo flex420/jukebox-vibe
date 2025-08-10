@@ -1,8 +1,8 @@
-# Jukebox 420 – Discord Soundboard (v1.1.0)
+# Jukebox 420 – Discord Soundboard (v1.1.1)
 
 A modern, self‑hosted Discord soundboard with a slick web UI and a Discord bot that plays sounds into your voice channels. Easy to run via Docker, fun to use with friends.
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![Version](https://img.shields.io/badge/version-1.1.1-blue)
 ![Docker](https://img.shields.io/badge/docker-ready-green)
 ![Discord](https://img.shields.io/badge/discord-bot-purple)
 
