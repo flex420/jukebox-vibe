@@ -397,6 +397,9 @@ async function ensureConnectionReady(connection: VoiceConnection, channelId: str
 
 function attachVoiceLifecycle(state: GuildAudioState, guild: any) {
   const { connection } = state;
+  // Mehrfach-Registrierung verhindern
+  if ((connection as any).__lifecycleAttached) return;
+  try { (connection as any).setMaxListeners?.(0); } catch {}
   connection.on('stateChange', async (oldS: any, newS: any) => {
     console.log(`${new Date().toISOString()} | VoiceConnection: ${oldS.status} -> ${newS.status}`);
     try {
@@ -434,6 +437,7 @@ function attachVoiceLifecycle(state: GuildAudioState, guild: any) {
       console.error(`${new Date().toISOString()} | Voice lifecycle handler error`, e);
     }
   });
+  (connection as any).__lifecycleAttached = true;
 }
 
 client.once(Events.ClientReady, () => {
@@ -471,9 +475,9 @@ client.on(Events.VoiceStateUpdate, async (oldState: VoiceState, newState: VoiceS
         }
       }
     }
-    // Exit: Nutzer verlässt einen Channel (vollständig oder wechselt zu anderem)
-    if (before && (!after || after !== before)) {
-      console.log(`${new Date().toISOString()} | Exit condition met for user=${userId} before=${before} after=${after ?? '-'}`);
+    // Exit: Nur wenn Nutzer wirklich auflegt (after ist leer). Bei Wechsel KEIN Exit-Sound.
+    if (before && !after) {
+      console.log(`${new Date().toISOString()} | Exit condition met (disconnect) for user=${userId} before=${before}`);
       const mapping = persistedState.exitSounds ?? {};
       const file = mapping[userId];
       if (file) {
@@ -486,6 +490,9 @@ client.on(Events.VoiceStateUpdate, async (oldState: VoiceState, newState: VoiceS
           } catch (e) { console.warn('Exit play error', e); }
         }
       }
+    } else if (before && after && before !== after) {
+      // Kanalwechsel: Exit-Sound unterdrücken
+      console.log(`${new Date().toISOString()} | Exit suppressed (move) for user=${userId} before=${before} after=${after}`);
     }
   } catch (e) {
     console.warn('VoiceStateUpdate entrance/exit handling error', e);
