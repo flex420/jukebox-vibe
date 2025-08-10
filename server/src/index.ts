@@ -37,6 +37,9 @@ const ALLOWED_GUILD_IDS = (process.env.ALLOWED_GUILD_IDS ?? '')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
+// Build/Version-Infos (zur Laufzeit verfügbar machen)
+const BUILD_CHANNEL = String(process.env.VITE_BUILD_CHANNEL ?? process.env.BUILD_CHANNEL ?? 'stable');
+const APP_VERSION = String(process.env.VITE_APP_VERSION ?? process.env.APP_VERSION ?? '1.0.0');
 
 if (!DISCORD_TOKEN) {
   console.error('Fehlende Umgebungsvariable DISCORD_TOKEN');
@@ -387,7 +390,13 @@ app.use(express.json());
 app.use(cors());
 
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({ ok: true, totalPlays: persistedState.totalPlays ?? 0, categories: (persistedState.categories ?? []).length });
+  res.json({
+    ok: true,
+    totalPlays: persistedState.totalPlays ?? 0,
+    categories: (persistedState.categories ?? []).length,
+    version: APP_VERSION,
+    build: BUILD_CHANNEL
+  });
 });
 
 // --- Admin Auth ---
