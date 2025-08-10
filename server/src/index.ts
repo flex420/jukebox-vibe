@@ -289,7 +289,12 @@ async function handleCommand(message: Message, content: string) {
     })();
     if (!resolve) { await reply('Datei nicht gefunden. Nutze ?list.'); return; }
     const userId = message.author?.id ?? ''; if (!userId) { await reply('Kein Benutzer erkannt.'); return; }
-    persistedState.entranceSounds = persistedState.entranceSounds ?? {}; persistedState.entranceSounds[userId] = resolve; writePersistedState(persistedState);
+    persistedState.entranceSounds = persistedState.entranceSounds ?? {};
+    persistedState.entranceSounds[userId] = resolve;
+    writePersistedState(persistedState);
+    try {
+      console.log(`${new Date().toISOString()} | Entrance set: user=${userId} (${message.author?.tag || 'unknown'}) file=${resolve}`);
+    } catch {}
     await reply(`Entrance-Sound gesetzt: ${resolve}`); return;
   }
   if (cmd === '?exit') {
@@ -307,7 +312,12 @@ async function handleCommand(message: Message, content: string) {
     })();
     if (!resolve) { await reply('Datei nicht gefunden. Nutze ?list.'); return; }
     const userId = message.author?.id ?? ''; if (!userId) { await reply('Kein Benutzer erkannt.'); return; }
-    persistedState.exitSounds = persistedState.exitSounds ?? {}; persistedState.exitSounds[userId] = resolve; writePersistedState(persistedState);
+    persistedState.exitSounds = persistedState.exitSounds ?? {};
+    persistedState.exitSounds[userId] = resolve;
+    writePersistedState(persistedState);
+    try {
+      console.log(`${new Date().toISOString()} | Exit set: user=${userId} (${message.author?.tag || 'unknown'}) file=${resolve}`);
+    } catch {}
     await reply(`Exit-Sound gesetzt: ${resolve}`); return;
   }
   await reply('Unbekannter Command. Nutze ?help.');
