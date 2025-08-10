@@ -386,10 +386,10 @@ export default function App() {
             </div>
             <div className="flex items-center space-x-3 lg:col-span-2">
               <div className="relative flex-grow">
-                                 <select className="input-field appearance-none pl-10" value={theme} onChange={(e)=>setTheme(e.target.value)}>
-                   <option value="dark">Dark</option>
-                   <option value="rainbow">Rainbow</option>
-                   <option value="420">420</option>
+                 <select title="Theme Auswahl" className="input-field appearance-none pl-10" value={theme} onChange={(e)=>setTheme(e.target.value)}>
+                   <option value="dark">Theme: Dark</option>
+                   <option value="rainbow">Theme: Rainbow</option>
+                   <option value="420">Theme: 420</option>
                  </select>
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>palette</span>
                 <span className="material-icons absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{color:'var(--text-secondary)'}}>unfold_more</span>
@@ -673,8 +673,14 @@ function CustomSelect({ channels, value, onChange }: SelectProps) {
 
   return (
     <div className="control select custom-select" ref={ref}>
-      <button ref={triggerRef} type="button" className="select-trigger" onClick={() => setOpen(v => !v)}>
-        {current ? `${current.guildName} – ${current.channelName}` : 'Channel wählen'}
+      <button
+        ref={triggerRef}
+        type="button"
+        className="select-trigger"
+        onClick={() => setOpen(v => !v)}
+        title={current ? `Channel: ${current.guildName} – ${current.channelName}` : 'Channel wählen'}
+      >
+        {current ? `Channel: ${current.guildName} – ${current.channelName}` : 'Channel wählen'}
         <span className="chev">▾</span>
       </button>
       {open && typeof document !== 'undefined' && ReactDOM.createPortal(
