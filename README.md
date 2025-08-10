@@ -1,8 +1,8 @@
-# Jukebox 420 – Discord Soundboard (v1.1.1)
+# Jukebox 420 – Discord Soundboard (v1.1.2)
 
 A modern, self‑hosted Discord soundboard with a slick web UI and a Discord bot that plays sounds into your voice channels. Easy to run via Docker, fun to use with friends.
 
-![Version](https://img.shields.io/badge/version-1.1.1-blue)
+![Version](https://img.shields.io/badge/version-1.1.2-blue)
 ![Docker](https://img.shields.io/badge/docker-ready-green)
 ![Discord](https://img.shields.io/badge/discord-bot-purple)
 
@@ -16,6 +16,7 @@ A modern, self‑hosted Discord soundboard with a slick web UI and a Discord bot
 - Admin area: bulk delete, inline rename, categories (CRUD) + bulk assign, remove custom badges
 - Partymode: server‑side random playback every 30–90 seconds, globally synced via SSE; Panic stops for everyone
 - Persistent state: volumes, plays, totalPlays, categories, badges in `/data/sounds/state.json`
+- Entrance/Exit sounds: per‑user sounds played when joining/leaving voice; users set them via DM (`?entrance`, `?exit`); Exit plays only on disconnect (not on channel switch)
 
 ## 🚀 Quick start
 
@@ -57,28 +58,28 @@ docker compose logs -f
 docker compose ps
 ```
 
-### 5. Zugriff
+### 5. Access
 - **Web-Interface**: `http://localhost:8199`
 - **Health Check**: `http://localhost:8199/api/health`
 
-## 🎯 Verwendung
+## 🎯 Usage
 
-### **Erste Schritte**
-1. **Discord Bot einladen** mit Voice-Permissions
-2. **Sounds hochladen** via DM an den Bot (MP3/WAV)
-3. **Web-Interface öffnen** und Theme wählen
-4. **Voice-Channel auswählen** und Sounds abspielen
+### **Getting started**
+1. Invite the Discord bot with voice permissions
+2. Upload sounds via DM to the bot (MP3/WAV)
+3. Open the web UI and choose a theme
+4. Select a voice channel and play sounds
 
-### **Admin-Panel**
-1. **Admin-Login** mit Passwort
-2. **Sounds auswählen** via Checkboxen
-3. **Bulk-Delete** oder **Umbenennen** durchführen
-4. **Logout** zum Beenden
+### **Admin panel**
+1. Log in with the admin password
+2. Select sounds via checkboxes
+3. Perform bulk delete or rename
+4. Logout to finish
 
-### **URL-Downloads**
-- **MP3/WAV Links** in das URL-Feld eingeben
-- **Download-Button** klicken
-- **Automatische Integration** in Soundboard
+### **URL downloads**
+- Enter MP3/WAV links into the URL field
+- Click Download
+- The file will be added automatically to the soundboard
 
 ## 🎨 Themes
 
@@ -98,7 +99,7 @@ docker compose ps
 - 20s Animation-Loop
 - Grüne Glow-Effekte
 
-## 📊 API Endpunkte
+## 📊 API endpoints
 
 ### **Public Endpoints**
 ```http
@@ -112,7 +113,7 @@ GET  /api/volume          # Volume abrufen
 POST /api/volume          # Volume setzen
 ```
 
-### **Admin Endpoints**
+### **Admin endpoints**
 ```http
 POST /api/admin/login     # Admin-Login
 POST /api/admin/logout    # Admin-Logout
@@ -121,19 +122,20 @@ POST /api/admin/sounds/delete  # Sounds löschen
 POST /api/admin/sounds/rename  # Sound umbenennen
 ```
 
-## 🔧 Discord Bot Commands
+## 🔧 Discord bot commands
 
-### **DM Commands**
-- `?help` - Hilfe anzeigen
-- `?list` - Alle Sounds auflisten
-- `?restart` - Bot neu starten (mit Bestätigung)
+### **DM commands**
+- `?help` – show help
+- `?list` – list all sounds
+- `?entrance <file.mp3|file.wav> | remove` – set or remove your entrance sound
+- `?exit <file.mp3|file.wav> | remove` – set or remove your exit sound
 
 ### **Upload via DM**
-- **MP3/WAV Dateien** direkt an Bot senden
-- **Automatische Speicherung** in `/data/sounds`
-- **Sofortige Verfügbarkeit** im Frontend
+- Send MP3/WAV files directly to the bot
+- Files are stored under `/data/sounds`
+- Immediately available in the frontend
 
-## 🐳 Docker Deployment
+## 🐳 Docker deployment
 
 ### **Docker Compose (Empfohlen)**
 ```yaml
@@ -176,7 +178,7 @@ docker run -d --name jukebox-420 -p 8199:8080 --env-file .env -v $(pwd)/data/sou
 - Hintergrund: Ohne TLS kann es zu Verschlüsselungs-/Encrypt‑Fehlern kommen, und Audio wird in Discord nicht korrekt wiedergegeben.
 - Praxis: Richte eine Domain wie `https://soundboard.deinedomain.tld` auf das Frontend ein und aktiviere SSL (Let’s Encrypt). Danach sollten Uploads/Playback stabil funktionieren.
 
-## 📁 Projekt-Struktur
+## 📁 Project structure
 
 ```
 jukebox-vibe/
@@ -200,7 +202,7 @@ jukebox-vibe/
 └── README.md             # Diese Datei
 ```
 
-## 🔧 Entwicklung
+## 🔧 Development
 
 ### **Lokale Entwicklung**
 ```bash
@@ -224,37 +226,37 @@ docker build -t jukebox-vibe .
 docker build --target development -t jukebox-vibe:dev .
 ```
 
-## 📈 Statistiken
+## 📈 Stats
 
-### **Persistente Daten**
-- **Sounds**: `/data/sounds/` (Volume Mount)
-- **State**: `/data/sounds/state.json` (Volume, Channel, Plays)
-- **Favoriten**: Browser Cookies
-- **Theme**: Browser LocalStorage
+### **Persistent data**
+- Sounds: `/data/sounds/` (volume mount)
+- State: `/data/sounds/state.json` (volume, channel, plays)
+- Favorites: browser cookies
+- Theme: browser localStorage
 
 ### **Monitoring**
-- **Health Check**: `/api/health`
-- **Docker Logs**: `docker compose logs -f`
-- **Container Status**: `docker compose ps`
+- Health check: `/api/health`
+- Docker logs: `docker compose logs -f`
+- Container status: `docker compose ps`
 
 ## 🛠️ Troubleshooting
 
 ### **Häufige Probleme**
 
-**Bot joint nicht Voice-Channel:**
-- Prüfe Bot-Permissions (Voice)
-- Prüfe Intents in Discord Developer Portal
-- Prüfe Network/Firewall
+**Bot does not join the voice channel:**
+- Check bot permissions (Connect, Speak, Request to Speak for Stage)
+- Verify gateway intents in the Discord Developer Portal (GuildVoiceStates, DirectMessages, MessageContent)
+- Check network/firewall
 
-**Sounds werden nicht angezeigt:**
-- Prüfe Volume Mount `/data/sounds`
-- Prüfe Datei-Permissions
-- Prüfe Bot-Uploads via DM
+**Sounds do not show up:**
+- Verify volume mount `/data/sounds`
+- Check file permissions
+- Confirm uploads via DM
 
-**Admin-Login funktioniert nicht:**
-- Prüfe Browser-Cookies
-- Prüfe Admin-Passwort
-- Prüfe Server-Logs
+**Admin login fails:**
+- Check browser cookies
+- Confirm admin password
+- Inspect server logs
 
 ### **Logs anzeigen**
 ```bash
