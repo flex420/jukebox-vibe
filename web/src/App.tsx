@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, clearBadges, updateCategory, deleteCategory, partyStart, partyStop, subscribeEvents, uploadFile } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, clearBadges, updateCategory, deleteCategory, partyStart, partyStop, subscribeEvents } from './api';
 import type { VoiceChannelInfo, Sound, Category } from './types';
 import { getCookie, setCookie } from './cookies';
 
@@ -299,18 +299,7 @@ export default function App() {
             <div className="broccoli">🥦</div>
           </>
         )}
-        <header className="flex items-center justify-between p-6" onDragOver={(e)=>{ e.preventDefault(); }} onDrop={async (e)=>{
-          try{
-            e.preventDefault();
-            if(!isAdmin){ setError('Login required for upload'); return; }
-            const files = Array.from(e.dataTransfer?.files || []).filter(f=>/\.(mp3|wav)$/i.test(f.name));
-            if(files.length===0){ setInfo('Drop MP3/WAV files to upload'); return; }
-            for(const f of files){ await uploadFile(f); }
-            setInfo(`${files.length} file(s) uploaded`);
-            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
-            setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
-          }catch(err:any){ setError(err?.message||'Upload failed'); setInfo(null); }
-        }}>
+        <header className="flex items-center justify-between p-6">
           <div className="flex items-center">
             <div>
                <h1 className="text-4xl font-bold">

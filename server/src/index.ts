@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import express, { Request, Response } from 'express';
-import multer from 'multer';
+// import multer from 'multer';
 import cors from 'cors';
 import crypto from 'node:crypto';
 import { Client, GatewayIntentBits, Partials, ChannelType, Events, type Message } from 'discord.js';
@@ -1029,35 +1029,7 @@ app.post('/api/play-url', async (req: Request, res: Response) => {
   }
 });
 
-// --- Datei-Upload (Admin): MP3/WAV per HTTP hochladen ---
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
-app.post('/api/upload', requireAdmin, upload.single('file'), async (req: Request, res: Response) => {
-  try {
-    const file = (req as any).file as Express.Multer.File | undefined;
-    const folderRaw = String((req.body as any)?.folder ?? '').trim();
-    if (!file) return res.status(400).json({ error: 'file erforderlich' });
-    const orig = file.originalname || 'upload';
-    const lower = orig.toLowerCase();
-    const ext = lower.endsWith('.mp3') ? '.mp3' : lower.endsWith('.wav') ? '.wav' : '';
-    if (!ext) return res.status(400).json({ error: 'Nur MP3 oder WAV erlaubt' });
-    const base = path.parse(orig).name.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
-    const safeFolder = folderRaw && !folderRaw.includes('..') ? folderRaw : '';
-    const targetDir = path.join(SOUNDS_DIR, safeFolder);
-    fs.mkdirSync(targetDir, { recursive: true });
-    let targetPath = path.join(targetDir, `${base}${ext}`);
-    let i = 2;
-    while (fs.existsSync(targetPath)) {
-      targetPath = path.join(targetDir, `${base}-${i}${ext}`);
-      i += 1;
-    }
-    fs.writeFileSync(targetPath, file.buffer);
-    const rel = path.relative(SOUNDS_DIR, targetPath).replace(/\\/g, '/');
-    return res.json({ ok: true, relativePath: rel, fileName: path.basename(targetPath) });
-  } catch (e: any) {
-    console.error('upload error:', e);
-    return res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });
-  }
-});
+// Upload endpoint removed (build reverted)
 
 
 

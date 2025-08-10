@@ -184,21 +184,7 @@ export async function playUrl(url: string, guildId: string, channelId: string, v
   }
 }
 
-export async function uploadFile(file: File, folder?: string) {
-  const form = new FormData();
-  form.append('file', file);
-  if (folder) form.append('folder', folder);
-  const res = await fetch(`${API_BASE}/upload`, {
-    method: 'POST',
-    credentials: 'include',
-    body: form
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(()=>({}));
-    throw new Error(data?.error || 'Upload failed');
-  }
-  return res.json();
-}
+// uploadFile removed (build reverted)
 
 
 
