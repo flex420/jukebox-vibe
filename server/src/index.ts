@@ -209,6 +209,26 @@ async function playFilePath(guildId: string, channelId: string, filePath: string
     state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
     attachVoiceLifecycle(state, guild);
   }
+  // Wenn der Bot in einer anderen ChannelId ist, sauber rüberwechseln
+  try {
+    const current = getVoiceConnection(guildId);
+    if (current && current.joinConfig?.channelId !== channelId) {
+      current.destroy();
+      const connection = joinVoiceChannel({
+        channelId,
+        guildId,
+        adapterCreator: guild.voiceAdapterCreator as any,
+        selfMute: false,
+        selfDeaf: false
+      });
+      const player = state.player ?? createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
+      connection.subscribe(player);
+      state = { connection, player, guildId, channelId, currentVolume: state.currentVolume ?? getPersistedVolume(guildId) };
+      guildAudioState.set(guildId, state);
+      state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
+      attachVoiceLifecycle(state, guild);
+    }
+  } catch {}
   const useVolume = typeof volume === 'number' && Number.isFinite(volume)
     ? Math.max(0, Math.min(1, volume))
     : (state.currentVolume ?? 1);
@@ -375,13 +395,16 @@ client.once(Events.ClientReady, () => {
 // Voice State Updates: Entrance/Exit
 client.on(Events.VoiceStateUpdate, async (oldState: VoiceState, newState: VoiceState) => {
   try {
-    const userId = newState.member?.user?.id || oldState.member?.user?.id;
+    const userId = (newState.id || oldState.id) as string;
     if (!userId) return;
+    // Eigene Events ignorieren
+    if (userId === client.user?.id) return;
     const guildId = (newState.guild?.id || oldState.guild?.id) as string;
     if (!guildId) return;
 
     const before = oldState.channelId;
     const after = newState.channelId;
+    console.log(`${new Date().toISOString()} | VoiceStateUpdate user=${userId} before=${before ?? '-'} after=${after ?? '-'}`);
 
     // Entrance: Nutzer joint einem Channel
     if (!before && after) {
@@ -394,6 +417,7 @@ client.on(Events.VoiceStateUpdate, async (oldState: VoiceState, newState: VoiceS
           try {
             // Dem Channel beitreten und Sound spielen
             await playFilePath(guildId, after, abs, undefined, rel);
+            console.log(`${new Date().toISOString()} | Entrance played for ${userId}: ${rel}`);
           } catch (e) { console.warn('Entrance play error', e); }
         }
       }
@@ -408,6 +432,7 @@ client.on(Events.VoiceStateUpdate, async (oldState: VoiceState, newState: VoiceS
         if (fs.existsSync(abs)) {
           try {
             await playFilePath(guildId, before, abs, undefined, rel);
+            console.log(`${new Date().toISOString()} | Exit played for ${userId}: ${rel}`);
           } catch (e) { console.warn('Exit play error', e); }
         }
       }
