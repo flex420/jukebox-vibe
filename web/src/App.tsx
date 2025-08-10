@@ -106,6 +106,15 @@ export default function App() {
             setSelected(newVal);
           }
         } catch {}
+        try {
+          const vols = msg?.volumes || {};
+          const cur = selectedRef.current || '';
+          const gid = cur ? cur.split(':')[0] : '';
+          if (gid && typeof vols[gid] === 'number') {
+            const v = vols[gid];
+            setVolume(v);
+          }
+        } catch {}
       } else if (msg?.type === 'channel') {
         try {
           const gid = msg.guildId;
@@ -114,6 +123,16 @@ export default function App() {
             const currentSelected = selectedRef.current || '';
             const curGid = currentSelected ? currentSelected.split(':')[0] : '';
             if (curGid === gid) setSelected(`${gid}:${cid}`);
+          }
+        } catch {}
+      } else if (msg?.type === 'volume') {
+        try {
+          const gid = msg.guildId;
+          const v = msg.volume;
+          const cur = selectedRef.current || '';
+          const curGid = cur ? cur.split(':')[0] : '';
+          if (gid && curGid === gid && typeof v === 'number') {
+            setVolume(v);
           }
         } catch {}
       }
