@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, clearBadges, updateCategory, deleteCategory, partyStart, partyStop, subscribeEvents } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, clearBadges, updateCategory, deleteCategory, partyStart, partyStop, subscribeEvents, getSelectedChannels, setSelectedChannel } from './api';
 import type { VoiceChannelInfo, Sound, Category } from './types';
 import { getCookie, setCookie } from './cookies';
 
@@ -13,7 +13,9 @@ export default function App() {
   const [activeCategoryId, setActiveCategoryId] = useState<string>('');
   const [channels, setChannels] = useState<VoiceChannelInfo[]>([]);
   const [query, setQuery] = useState('');
+  const [fuzzy, setFuzzy] = useState<boolean>(false);
   const [selected, setSelected] = useState<string>('');
+  const selectedRef = useRef<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -54,18 +56,24 @@ export default function App() {
   const chaosTimeoutRef = useRef<number | null>(null);
   const chaosModeRef = useRef<boolean>(false);
   useEffect(() => { chaosModeRef.current = chaosMode; }, [chaosMode]);
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
 
   useEffect(() => {
     (async () => {
       try {
-        const c = await fetchChannels();
+        const [c, selectedMap] = await Promise.all([fetchChannels(), getSelectedChannels()]);
         setChannels(c);
-        const stored = localStorage.getItem('selectedChannel');
-        if (stored && c.find(x => `${x.guildId}:${x.channelId}` === stored)) {
-          setSelected(stored);
-        } else if (c[0]) {
-          setSelected(`${c[0].guildId}:${c[0].channelId}`);
+        let initial = '';
+        if (c.length > 0) {
+          const firstGuild = c[0].guildId;
+          const serverCid = selectedMap[firstGuild];
+          if (serverCid && c.find(x => x.guildId === firstGuild && x.channelId === serverCid)) {
+            initial = `${firstGuild}:${serverCid}`;
+          } else {
+            initial = `${c[0].guildId}:${c[0].channelId}`;
+          }
         }
+        if (initial) setSelected(initial);
       } catch (e: any) {
         setError(e?.message || 'Fehler beim Laden der Channels');
       }
@@ -89,6 +97,25 @@ export default function App() {
         });
       } else if (msg?.type === 'snapshot') {
         setPartyActiveGuilds(Array.isArray(msg.party) ? msg.party : []);
+        try {
+          const sel = msg?.selected || {};
+          const currentSelected = selectedRef.current || '';
+          const gid = currentSelected ? currentSelected.split(':')[0] : '';
+          if (gid && sel[gid]) {
+            const newVal = `${gid}:${sel[gid]}`;
+            setSelected(newVal);
+          }
+        } catch {}
+      } else if (msg?.type === 'channel') {
+        try {
+          const gid = msg.guildId;
+          const cid = msg.channelId;
+          if (gid && cid) {
+            const currentSelected = selectedRef.current || '';
+            const curGid = currentSelected ? currentSelected.split(':')[0] : '';
+            if (curGid === gid) setSelected(`${gid}:${cid}`);
+          }
+        } catch {}
       }
     });
     return () => { try { unsub(); } catch {} };
@@ -113,7 +140,7 @@ export default function App() {
     (async () => {
       try {
         const folderParam = activeFolder === '__favs__' ? '__all__' : activeFolder;
-        const s = await fetchSounds(query, folderParam, activeCategoryId || undefined);
+        const s = await fetchSounds(query, folderParam, activeCategoryId || undefined, fuzzy);
         setSounds(s.items);
         setTotal(s.total);
         setFolders(s.folders);
@@ -121,7 +148,7 @@ export default function App() {
         setError(e?.message || 'Fehler beim Laden der Sounds');
       }
     })();
-  }, [activeFolder, query, activeCategoryId]);
+  }, [activeFolder, query, activeCategoryId, fuzzy]);
 
   // Favoriten aus Cookie laden
   useEffect(() => {
@@ -186,11 +213,8 @@ export default function App() {
     })();
   }, [selected]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return sounds;
-    return sounds.filter((s) => s.name.toLowerCase().includes(q));
-  }, [sounds, query]);
+  // Server liefert bereits gefilterte (und ggf. fuzzy-sortierte) Ergebnisse
+  const filtered = sounds;
 
   const favCount = useMemo(() => Object.values(favs).filter(Boolean).length, [favs]);
 
@@ -303,10 +327,9 @@ export default function App() {
           <div className="flex items-center">
             <div>
                <h1 className="text-4xl font-bold">
-                 Jukebox 420
-                 {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
+                  Jukebox 420
+                   {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
                    <div className="text-sm font-normal mt-1 opacity-70">
-                    v{import.meta.env.VITE_APP_VERSION || '1.1.0'}
                      <span className="ml-2" style={{ color: '#ff4d4f' }}>• Nightly</span>
                    </div>
                  )}
@@ -344,12 +367,29 @@ export default function App() {
 
         <div className="control-panel rounded-xl p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-center">
-            <div className="relative">
-              <input className="input-field pl-10 with-left-icon" placeholder="Nach Sounds suchen..." value={query} onChange={(e)=>setQuery(e.target.value)} />
-              <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>search</span>
+            <div className="flex items-center gap-3">
+              <button
+                className={`font-bold p-3 rounded-lg transition duration-300 ${fuzzy ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+                onClick={() => setFuzzy((v) => !v)}
+                title="Fuzzy-Suche umschalten"
+                aria-label="Fuzzy-Suche umschalten"
+                aria-pressed={fuzzy}
+              >
+                <span className="material-icons" aria-hidden="true">blur_on</span>
+              </button>
+              <div className="relative flex-1">
+                <input className="input-field pl-10 with-left-icon w-full" placeholder="Nach Sounds suchen..." value={query} onChange={(e)=>setQuery(e.target.value)} />
+                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>search</span>
+              </div>
             </div>
             <div className="relative">
-              <CustomSelect channels={channels} value={selected} onChange={setSelected} />
+              <CustomSelect channels={channels} value={selected} onChange={async (v)=>{
+                setSelected(v);
+                try {
+                  const [gid, cid] = v.split(':');
+                  await setSelectedChannel(gid, cid);
+                } catch (e) { /* noop */ }
+              }} />
               <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>folder_special</span>
             </div>
             <div className="flex items-center space-x-3">
@@ -381,10 +421,10 @@ export default function App() {
             </div>
             <div className="flex items-center space-x-3 lg:col-span-2">
               <div className="relative flex-grow">
-                                 <select className="input-field appearance-none pl-10" value={theme} onChange={(e)=>setTheme(e.target.value)}>
-                   <option value="dark">Dark</option>
-                   <option value="rainbow">Rainbow</option>
-                   <option value="420">420</option>
+                 <select title="Theme Auswahl" className="input-field appearance-none pl-10" value={theme} onChange={(e)=>setTheme(e.target.value)}>
+                   <option value="dark">Theme: Dark</option>
+                   <option value="rainbow">Theme: Rainbow</option>
+                   <option value="420">Theme: 420</option>
                  </select>
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>palette</span>
                 <span className="material-icons absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{color:'var(--text-secondary)'}}>unfold_more</span>
@@ -443,7 +483,7 @@ export default function App() {
                           const toDelete = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
                           await adminDelete(toDelete);
                           clearSelection();
-                          const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder);
+                      const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined, fuzzy);
                           setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
                         } catch (e:any) { setError(e?.message||'Löschen fehlgeschlagen'); }
                       }}
@@ -458,7 +498,7 @@ export default function App() {
                       try {
                         await adminRename(from, newName);
                         clearSelection();
-                        const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder);
+                         const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined, fuzzy);
                         setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
                       } catch (e:any) { setError(e?.message||'Umbenennen fehlgeschlagen'); }
                     }} />
@@ -478,7 +518,7 @@ export default function App() {
                             if(!assignCategoryId){ setError('Bitte Kategorie wählen'); return; }
                             await assignCategories(files, [assignCategoryId], []);
                             setInfo('Kategorie zugewiesen'); setError(null);
-                            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
+                            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined, fuzzy);
                             setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
                           }catch(e:any){ setError(e?.message||'Zuweisung fehlgeschlagen'); setInfo(null); }
                         }}
@@ -493,7 +533,7 @@ export default function App() {
                             const files = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
                             await clearBadges(files);
                             setInfo('Alle Custom-Badges entfernt'); setError(null);
-                            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
+                            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined, fuzzy);
                             setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
                           }catch(err:any){ setError(err?.message||'Badge-Entfernung fehlgeschlagen'); setInfo(null); }
                         }}
@@ -668,8 +708,14 @@ function CustomSelect({ channels, value, onChange }: SelectProps) {
 
   return (
     <div className="control select custom-select" ref={ref}>
-      <button ref={triggerRef} type="button" className="select-trigger" onClick={() => setOpen(v => !v)}>
-        {current ? `${current.guildName} – ${current.channelName}` : 'Channel wählen'}
+      <button
+        ref={triggerRef}
+        type="button"
+        className="select-trigger"
+        onClick={() => setOpen(v => !v)}
+        title={current ? `Channel: ${current.guildName} – ${current.channelName}` : 'Channel wählen'}
+      >
+        {current ? `Channel: ${current.guildName} – ${current.channelName}` : 'Channel wählen'}
         <span className="chev">▾</span>
       </button>
       {open && typeof document !== 'undefined' && ReactDOM.createPortal(

@@ -20,6 +20,7 @@ export type VoiceChannelInfo = {
   guildName: string;
   channelId: string;
   channelName: string;
+  selected?: boolean;
 };
 
 export type Category = { id: string; name: string; color?: string; sort?: number };

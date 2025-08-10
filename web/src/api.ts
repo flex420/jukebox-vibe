@@ -2,11 +2,12 @@ import type { Sound, SoundsResponse, VoiceChannelInfo } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
-export async function fetchSounds(q?: string, folderKey?: string, categoryId?: string): Promise<SoundsResponse> {
+export async function fetchSounds(q?: string, folderKey?: string, categoryId?: string, fuzzy?: boolean): Promise<SoundsResponse> {
   const url = new URL(`${API_BASE}/sounds`, window.location.origin);
   if (q) url.searchParams.set('q', q);
   if (folderKey !== undefined) url.searchParams.set('folder', folderKey);
   if (categoryId) url.searchParams.set('categoryId', categoryId);
+  if (typeof fuzzy === 'boolean') url.searchParams.set('fuzzy', fuzzy ? '1' : '0');
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error('Fehler beim Laden der Sounds');
   return res.json();
@@ -76,6 +77,21 @@ export async function fetchChannels(): Promise<VoiceChannelInfo[]> {
   const res = await fetch(`${API_BASE}/channels`);
   if (!res.ok) throw new Error('Fehler beim Laden der Channels');
   return res.json();
+}
+
+export async function getSelectedChannels(): Promise<Record<string, string>> {
+  const res = await fetch(`${API_BASE}/selected-channels`);
+  if (!res.ok) throw new Error('Fehler beim Laden der Channel-Auswahl');
+  const data = await res.json();
+  return data?.selected || {};
+}
+
+export async function setSelectedChannel(guildId: string, channelId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/selected-channel`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ guildId, channelId })
+  });
+  if (!res.ok) throw new Error('Channel-Auswahl setzen fehlgeschlagen');
 }
 
 export async function playSound(soundName: string, guildId: string, channelId: string, volume: number, relativePath?: string): Promise<void> {
@@ -183,6 +199,8 @@ export async function playUrl(url: string, guildId: string, channelId: string, v
     throw new Error(data?.error || 'Play-URL fehlgeschlagen');
   }
 }
+
+// uploadFile removed (build reverted)
 
 
 
