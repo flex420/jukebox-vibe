@@ -2,11 +2,12 @@ import type { Sound, SoundsResponse, VoiceChannelInfo } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
-export async function fetchSounds(q?: string, folderKey?: string, categoryId?: string): Promise<SoundsResponse> {
+export async function fetchSounds(q?: string, folderKey?: string, categoryId?: string, fuzzy?: boolean): Promise<SoundsResponse> {
   const url = new URL(`${API_BASE}/sounds`, window.location.origin);
   if (q) url.searchParams.set('q', q);
   if (folderKey !== undefined) url.searchParams.set('folder', folderKey);
   if (categoryId) url.searchParams.set('categoryId', categoryId);
+  if (typeof fuzzy === 'boolean') url.searchParams.set('fuzzy', fuzzy ? '1' : '0');
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error('Fehler beim Laden der Sounds');
   return res.json();

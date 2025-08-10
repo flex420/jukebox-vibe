@@ -432,6 +432,8 @@ app.get('/api/sounds', (req: Request, res: Response) => {
   const q = String(req.query.q ?? '').toLowerCase();
   const folderFilter = typeof req.query.folder === 'string' ? (req.query.folder as string) : '__all__';
   const categoryFilter = typeof (req.query as any).categoryId === 'string' ? String((req.query as any).categoryId) : undefined;
+  const fuzzyParam = String((req.query as any).fuzzy ?? '0');
+  const useFuzzy = fuzzyParam === '1' || fuzzyParam === 'true';
 
   const rootEntries = fs.readdirSync(SOUNDS_DIR, { withFileTypes: true });
   const rootFiles = rootEntries
@@ -523,11 +525,15 @@ app.get('/api/sounds', (req: Request, res: Response) => {
 
   let filteredItems = itemsByFolder;
   if (q) {
-    const scored = itemsByFolder
-      .map((it) => ({ it, score: fuzzyScore(it.name.toLowerCase(), q) }))
-      .filter((x) => x.score > 0)
-      .sort((a, b) => (b.score - a.score) || a.it.name.localeCompare(b.it.name));
-    filteredItems = scored.map((x) => x.it);
+    if (useFuzzy) {
+      const scored = itemsByFolder
+        .map((it) => ({ it, score: fuzzyScore(it.name.toLowerCase(), q) }))
+        .filter((x) => x.score > 0)
+        .sort((a, b) => (b.score - a.score) || a.it.name.localeCompare(b.it.name));
+      filteredItems = scored.map((x) => x.it);
+    } else {
+      filteredItems = itemsByFolder.filter((s) => s.name.toLowerCase().includes(q));
+    }
   }
 
   const total = allItems.length;

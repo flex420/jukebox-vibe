@@ -13,6 +13,7 @@ export default function App() {
   const [activeCategoryId, setActiveCategoryId] = useState<string>('');
   const [channels, setChannels] = useState<VoiceChannelInfo[]>([]);
   const [query, setQuery] = useState('');
+  const [fuzzy, setFuzzy] = useState<boolean>(false);
   const [selected, setSelected] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +114,7 @@ export default function App() {
     (async () => {
       try {
         const folderParam = activeFolder === '__favs__' ? '__all__' : activeFolder;
-        const s = await fetchSounds(query, folderParam, activeCategoryId || undefined);
+        const s = await fetchSounds(query, folderParam, activeCategoryId || undefined, fuzzy);
         setSounds(s.items);
         setTotal(s.total);
         setFolders(s.folders);
@@ -121,7 +122,7 @@ export default function App() {
         setError(e?.message || 'Fehler beim Laden der Sounds');
       }
     })();
-  }, [activeFolder, query, activeCategoryId]);
+  }, [activeFolder, query, activeCategoryId, fuzzy]);
 
   // Favoriten aus Cookie laden
   useEffect(() => {
@@ -324,6 +325,13 @@ export default function App() {
               <button className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300" onClick={async () => {
                 try { const res = await fetch('/api/sounds'); const data = await res.json(); const items = data?.items || []; if (!items.length || !selected) return; const rnd = items[Math.floor(Math.random()*items.length)]; const [guildId, channelId] = selected.split(':'); await playSound(rnd.name, guildId, channelId, volume, rnd.relativePath);} catch {}
               }}>Random</button>
+              <button
+                className={`font-bold py-3 px-6 rounded-lg transition duration-300 ${fuzzy ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+                onClick={() => setFuzzy((v) => !v)}
+                title="Fuzzy-Suche umschalten"
+              >
+                Fuzzy {fuzzy ? 'ON' : 'OFF'}
+              </button>
               <button 
                  className={`font-bold py-3 px-6 rounded-lg transition duration-300 ${
                    chaosMode 
@@ -440,7 +448,7 @@ export default function App() {
                           const toDelete = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
                           await adminDelete(toDelete);
                           clearSelection();
-                          const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder);
+                      const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined, fuzzy);
                           setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
                         } catch (e:any) { setError(e?.message||'Löschen fehlgeschlagen'); }
                       }}
@@ -455,7 +463,7 @@ export default function App() {
                       try {
                         await adminRename(from, newName);
                         clearSelection();
-                        const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder);
+                         const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined, fuzzy);
                         setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
                       } catch (e:any) { setError(e?.message||'Umbenennen fehlgeschlagen'); }
                     }} />
@@ -475,7 +483,7 @@ export default function App() {
                             if(!assignCategoryId){ setError('Bitte Kategorie wählen'); return; }
                             await assignCategories(files, [assignCategoryId], []);
                             setInfo('Kategorie zugewiesen'); setError(null);
-                            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
+                            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined, fuzzy);
                             setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
                           }catch(e:any){ setError(e?.message||'Zuweisung fehlgeschlagen'); setInfo(null); }
                         }}
@@ -490,7 +498,7 @@ export default function App() {
                             const files = Object.entries(selectedSet).filter(([,v])=>v).map(([k])=>k);
                             await clearBadges(files);
                             setInfo('Alle Custom-Badges entfernt'); setError(null);
-                            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined);
+                            const resp = await fetchSounds(query, activeFolder === '__favs__' ? '__all__' : activeFolder, activeCategoryId || undefined, fuzzy);
                             setSounds(resp.items); setTotal(resp.total); setFolders(resp.folders);
                           }catch(err:any){ setError(err?.message||'Badge-Entfernung fehlgeschlagen'); setInfo(null); }
                         }}
