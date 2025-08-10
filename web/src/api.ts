@@ -79,6 +79,21 @@ export async function fetchChannels(): Promise<VoiceChannelInfo[]> {
   return res.json();
 }
 
+export async function getSelectedChannels(): Promise<Record<string, string>> {
+  const res = await fetch(`${API_BASE}/selected-channels`);
+  if (!res.ok) throw new Error('Fehler beim Laden der Channel-Auswahl');
+  const data = await res.json();
+  return data?.selected || {};
+}
+
+export async function setSelectedChannel(guildId: string, channelId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/selected-channel`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ guildId, channelId })
+  });
+  if (!res.ok) throw new Error('Channel-Auswahl setzen fehlgeschlagen');
+}
+
 export async function playSound(soundName: string, guildId: string, channelId: string, volume: number, relativePath?: string): Promise<void> {
   const res = await fetch(`${API_BASE}/play`, {
     method: 'POST',

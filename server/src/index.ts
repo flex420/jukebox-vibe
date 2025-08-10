@@ -47,13 +47,14 @@ fs.mkdirSync(SOUNDS_DIR, { recursive: true });
 
 // Persistenter Zustand: Lautstärke/Plays + Kategorien
 type Category = { id: string; name: string; color?: string; sort?: number };
-type PersistedState = {
+ type PersistedState = {
   volumes: Record<string, number>;
   plays: Record<string, number>;
   totalPlays: number;
   categories?: Category[];
   fileCategories?: Record<string, string[]>; // relPath or fileName -> categoryIds[]
   fileBadges?: Record<string, string[]>; // relPath or fileName -> custom badges (emoji/text)
+    selectedChannels?: Record<string, string>; // guildId -> channelId (serverweite Auswahl)
 };
 // Neuer, persistenter Speicherort direkt im Sounds-Volume
 const STATE_FILE_NEW = path.join(SOUNDS_DIR, 'state.json');
@@ -72,7 +73,8 @@ function readPersistedState(): PersistedState {
         totalPlays: parsed.totalPlays ?? 0,
         categories: Array.isArray(parsed.categories) ? parsed.categories : [],
         fileCategories: parsed.fileCategories ?? {},
-        fileBadges: parsed.fileBadges ?? {}
+        fileBadges: parsed.fileBadges ?? {},
+        selectedChannels: parsed.selectedChannels ?? {}
       } as PersistedState;
     }
     // 2) Fallback: alten Speicherort lesen und sofort nach NEW migrieren
@@ -85,7 +87,8 @@ function readPersistedState(): PersistedState {
         totalPlays: parsed.totalPlays ?? 0,
         categories: Array.isArray(parsed.categories) ? parsed.categories : [],
         fileCategories: parsed.fileCategories ?? {},
-        fileBadges: parsed.fileBadges ?? {}
+        fileBadges: parsed.fileBadges ?? {},
+        selectedChannels: parsed.selectedChannels ?? {}
       };
       try {
         fs.mkdirSync(path.dirname(STATE_FILE_NEW), { recursive: true });
@@ -160,6 +163,23 @@ function sseBroadcast(payload: any) {
   for (const res of sseClients) {
     try { res.write(data); } catch {}
   }
+}
+
+// Hilfsfunktionen für serverweit ausgewählten Channel pro Guild
+function getSelectedChannelForGuild(guildId: string): string | undefined {
+  const id = String(guildId || '');
+  if (!id) return undefined;
+  const sc = persistedState.selectedChannels ?? {};
+  return sc[id];
+}
+function setSelectedChannelForGuild(guildId: string, channelId: string): void {
+  const g = String(guildId || '');
+  const c = String(channelId || '');
+  if (!g || !c) return;
+  if (!persistedState.selectedChannels) persistedState.selectedChannels = {};
+  persistedState.selectedChannels[g] = c;
+  writePersistedState(persistedState);
+  sseBroadcast({ type: 'channel', guildId: g, channelId: c });
 }
 
 async function playFilePath(guildId: string, channelId: string, filePath: string, volume?: number, relativeKey?: string): Promise<void> {
@@ -727,18 +747,49 @@ app.get('/api/channels', (_req: Request, res: Response) => {
   if (!client.isReady()) return res.status(503).json({ error: 'Bot noch nicht bereit' });
 
   const allowed = new Set(ALLOWED_GUILD_IDS);
-  const result: Array<{ guildId: string; guildName: string; channelId: string; channelName: string }> = [];
+  const result: Array<{ guildId: string; guildName: string; channelId: string; channelName: string; selected?: boolean }> = [];
   for (const [, guild] of client.guilds.cache) {
     if (allowed.size > 0 && !allowed.has(guild.id)) continue;
     const channels = guild.channels.cache;
     for (const [, ch] of channels) {
       if (ch?.type === ChannelType.GuildVoice || ch?.type === ChannelType.GuildStageVoice) {
-        result.push({ guildId: guild.id, guildName: guild.name, channelId: ch.id, channelName: ch.name });
+        const sel = getSelectedChannelForGuild(guild.id);
+        result.push({ guildId: guild.id, guildName: guild.name, channelId: ch.id, channelName: ch.name, selected: sel === ch.id });
       }
     }
   }
   result.sort((a, b) => a.guildName.localeCompare(b.guildName) || a.channelName.localeCompare(b.channelName));
   res.json(result);
+});
+
+// Globale Channel-Auswahl: auslesen (komplettes Mapping)
+app.get('/api/selected-channels', (_req: Request, res: Response) => {
+  try {
+    res.json({ selected: persistedState.selectedChannels ?? {} });
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });
+  }
+});
+
+// Globale Channel-Auswahl: setzen (validiert Channel-Typ)
+app.post('/api/selected-channel', async (req: Request, res: Response) => {
+  try {
+    const { guildId, channelId } = req.body as { guildId?: string; channelId?: string };
+    const gid = String(guildId ?? '');
+    const cid = String(channelId ?? '');
+    if (!gid || !cid) return res.status(400).json({ error: 'guildId und channelId erforderlich' });
+    const guild = client.guilds.cache.get(gid);
+    if (!guild) return res.status(404).json({ error: 'Guild nicht gefunden' });
+    const ch = guild.channels.cache.get(cid);
+    if (!ch || (ch.type !== ChannelType.GuildVoice && ch.type !== ChannelType.GuildStageVoice)) {
+      return res.status(400).json({ error: 'Ungültiger Voice-Channel' });
+    }
+    setSelectedChannelForGuild(gid, cid);
+    return res.json({ ok: true });
+  } catch (e: any) {
+    console.error('selected-channel error', e);
+    return res.status(500).json({ error: e?.message ?? 'Unbekannter Fehler' });
+  }
 });
 
 app.post('/api/play', async (req: Request, res: Response) => {
@@ -1023,7 +1074,9 @@ app.get('/api/events', (req: Request, res: Response) => {
   res.flushHeaders?.();
 
   // Snapshot senden
-  try { res.write(`data: ${JSON.stringify({ type: 'snapshot', party: Array.from(partyActive) })}\n\n`); } catch {}
+  try {
+    res.write(`data: ${JSON.stringify({ type: 'snapshot', party: Array.from(partyActive), selected: persistedState.selectedChannels ?? {} })}\n\n`);
+  } catch {}
 
   // Ping, damit Proxies die Verbindung offen halten
   const ping = setInterval(() => { try { res.write(':\n\n'); } catch {} }, 15_000);

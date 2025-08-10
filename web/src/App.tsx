@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, clearBadges, updateCategory, deleteCategory, partyStart, partyStop, subscribeEvents } from './api';
+import { fetchChannels, fetchSounds, playSound, setVolumeLive, getVolume, adminStatus, adminLogin, adminLogout, adminDelete, adminRename, playUrl, fetchCategories, createCategory, assignCategories, clearBadges, updateCategory, deleteCategory, partyStart, partyStop, subscribeEvents, getSelectedChannels, setSelectedChannel } from './api';
 import type { VoiceChannelInfo, Sound, Category } from './types';
 import { getCookie, setCookie } from './cookies';
 
@@ -59,14 +59,19 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const c = await fetchChannels();
+        const [c, selectedMap] = await Promise.all([fetchChannels(), getSelectedChannels()]);
         setChannels(c);
-        const stored = localStorage.getItem('selectedChannel');
-        if (stored && c.find(x => `${x.guildId}:${x.channelId}` === stored)) {
-          setSelected(stored);
-        } else if (c[0]) {
-          setSelected(`${c[0].guildId}:${c[0].channelId}`);
+        let initial = '';
+        if (c.length > 0) {
+          const firstGuild = c[0].guildId;
+          const serverCid = selectedMap[firstGuild];
+          if (serverCid && c.find(x => x.guildId === firstGuild && x.channelId === serverCid)) {
+            initial = `${firstGuild}:${serverCid}`;
+          } else {
+            initial = `${c[0].guildId}:${c[0].channelId}`;
+          }
         }
+        if (initial) setSelected(initial);
       } catch (e: any) {
         setError(e?.message || 'Fehler beim Laden der Channels');
       }
@@ -90,6 +95,23 @@ export default function App() {
         });
       } else if (msg?.type === 'snapshot') {
         setPartyActiveGuilds(Array.isArray(msg.party) ? msg.party : []);
+        try {
+          const sel = msg?.selected || {};
+          const gid = selected ? selected.split(':')[0] : '';
+          if (gid && sel[gid]) {
+            const newVal = `${gid}:${sel[gid]}`;
+            setSelected(newVal);
+          }
+        } catch {}
+      } else if (msg?.type === 'channel') {
+        try {
+          const gid = msg.guildId;
+          const cid = msg.channelId;
+          if (gid && cid) {
+            const curGid = selected ? selected.split(':')[0] : '';
+            if (curGid === gid) setSelected(`${gid}:${cid}`);
+          }
+        } catch {}
       }
     });
     return () => { try { unsub(); } catch {} };
@@ -358,7 +380,13 @@ export default function App() {
               </div>
             </div>
             <div className="relative">
-              <CustomSelect channels={channels} value={selected} onChange={setSelected} />
+              <CustomSelect channels={channels} value={selected} onChange={async (v)=>{
+                setSelected(v);
+                try {
+                  const [gid, cid] = v.split(':');
+                  await setSelectedChannel(gid, cid);
+                } catch (e) { /* noop */ }
+              }} />
               <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2" style={{color:'var(--text-secondary)'}}>folder_special</span>
             </div>
             <div className="flex items-center space-x-3">
