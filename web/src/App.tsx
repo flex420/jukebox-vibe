@@ -106,6 +106,15 @@ export default function App() {
             setSelected(newVal);
           }
         } catch {}
+        try {
+          const vols = msg?.volumes || {};
+          const cur = selectedRef.current || '';
+          const gid = cur ? cur.split(':')[0] : '';
+          if (gid && typeof vols[gid] === 'number') {
+            const v = vols[gid];
+            setVolume(v);
+          }
+        } catch {}
       } else if (msg?.type === 'channel') {
         try {
           const gid = msg.guildId;
@@ -114,6 +123,16 @@ export default function App() {
             const currentSelected = selectedRef.current || '';
             const curGid = currentSelected ? currentSelected.split(':')[0] : '';
             if (curGid === gid) setSelected(`${gid}:${cid}`);
+          }
+        } catch {}
+      } else if (msg?.type === 'volume') {
+        try {
+          const gid = msg.guildId;
+          const v = msg.volume;
+          const cur = selectedRef.current || '';
+          const curGid = cur ? cur.split(':')[0] : '';
+          if (gid && curGid === gid && typeof v === 'number') {
+            setVolume(v);
           }
         } catch {}
       }
@@ -327,8 +346,8 @@ export default function App() {
           <div className="flex items-center">
             <div>
                <h1 className="text-4xl font-bold">
-                 Jukebox 420
-                  {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
+                  Jukebox 420
+                   {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
                    <div className="text-sm font-normal mt-1 opacity-70">
                      <span className="ml-2" style={{ color: '#ff4d4f' }}>• Nightly</span>
                    </div>
@@ -653,15 +672,7 @@ export default function App() {
             );
           })}
         </main>
-        {/* Footer: Version/Channel */}
-        <footer className="footer-info">
-          <span>
-            v{import.meta.env.VITE_APP_VERSION || ''}
-            {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
-              <span className="ml-2">• Nightly</span>
-            )}
-          </span>
-        </footer>
+        {/* Footer intentionally left without version display */}
       </div>
       {showTop && (
         <button type="button" className="back-to-top" aria-label="Nach oben" onClick={()=>window.scrollTo({top:0, behavior:'smooth'})}>↑ Top</button>

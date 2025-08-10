@@ -29,13 +29,13 @@ jobs:
         run: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "tag=main" >> $GITHUB_OUTPUT
-            echo "version=1.0.0" >> $GITHUB_OUTPUT
+            echo "version=1.1.0" >> $GITHUB_OUTPUT
             echo "channel=stable" >> $GITHUB_OUTPUT
           else
             # Ersetze Slashes durch Bindestriche für gültige Docker Tags
             CLEAN_TAG=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
             echo "tag=$CLEAN_TAG" >> $GITHUB_OUTPUT
-            echo "version=1.0.0-nightly" >> $GITHUB_OUTPUT
+            echo "version=1.1.0-nightly" >> $GITHUB_OUTPUT
             echo "channel=nightly" >> $GITHUB_OUTPUT
           fi
 

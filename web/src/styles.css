@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
-:root { color-scheme: dark; }
+:root { color-scheme: dark; --range-track-h: 8px; --range-thumb-d: 20px; }
 * { box-sizing: border-box; }
 [data-theme="dark"] body,
 body {
@@ -476,12 +476,13 @@ header p {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 8px;
+  height: var(--range-track-h, 8px);
   border-radius: 5px;
   outline: none;
   cursor: pointer;
   /* Sichtbarer Füllbalken über ein Hintergrund-Gradient, Breite via --_fill gesteuert */
   background: linear-gradient(var(--range-accent), var(--range-accent)) 0/var(--_fill, 0%) 100% no-repeat, var(--range-track-bg, #2c2c2c);
+  vertical-align: middle;
 }
 
 /* Tracks transparent halten, damit der Hintergrund-Gradient sichtbar ist */
@@ -496,8 +497,9 @@ header p {
 .volume-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: var(--range-thumb-d, 20px);
+  height: var(--range-thumb-d, 20px);
+  margin-top: calc((var(--range-track-h, 8px) - var(--range-thumb-d, 20px)) / 2);
   border-radius: 50%;
   cursor: pointer;
   border: none;
@@ -521,7 +523,7 @@ header p {
   --range-track-bg: #2c2c2c;
   accent-color: #0a84ff;
   border-radius: 5px;
-  height: 8px;
+  height: var(--range-track-h, 8px);
 }
 
 [data-theme="dark"] .control.volume input[type="range"]::-webkit-slider-thumb,
@@ -543,7 +545,7 @@ header p {
   --range-track-bg: rgba(44,44,44,.8);
   accent-color: #23a6d5;
   border-radius: 5px;
-  height: 8px;
+  height: var(--range-track-h, 8px);
   border: 1px solid #3a3a3c;
 }
 

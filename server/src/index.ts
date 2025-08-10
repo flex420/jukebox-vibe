@@ -941,6 +941,8 @@ app.post('/api/volume', (req: Request, res: Response) => {
       // Kein aktiver Player: nur persistieren für nächste Wiedergabe
       persistedState.volumes[guildId] = safeVolume;
       writePersistedState(persistedState);
+      // Broadcast neue Lautstärke an alle Clients
+      sseBroadcast({ type: 'volume', guildId, volume: safeVolume });
       return res.json({ ok: true, volume: safeVolume, persistedOnly: true });
     }
     state.currentVolume = safeVolume;
@@ -950,6 +952,8 @@ app.post('/api/volume', (req: Request, res: Response) => {
     }
     persistedState.volumes[guildId] = safeVolume;
     writePersistedState(persistedState);
+    // Broadcast neue Lautstärke an alle Clients
+    sseBroadcast({ type: 'volume', guildId, volume: safeVolume });
     return res.json({ ok: true, volume: safeVolume });
   } catch (e: any) {
     console.error('Volume-Fehler:', e);
@@ -1075,7 +1079,7 @@ app.get('/api/events', (req: Request, res: Response) => {
 
   // Snapshot senden
   try {
-    res.write(`data: ${JSON.stringify({ type: 'snapshot', party: Array.from(partyActive), selected: persistedState.selectedChannels ?? {} })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'snapshot', party: Array.from(partyActive), selected: persistedState.selectedChannels ?? {}, volumes: persistedState.volumes ?? {} })}\n\n`);
   } catch {}
 
   // Ping, damit Proxies die Verbindung offen halten

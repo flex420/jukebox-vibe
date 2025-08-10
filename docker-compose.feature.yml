@@ -13,7 +13,7 @@ services:
       - GUILD_ID=${GUILD_ID}
       - ADMIN_PWD=${ADMIN_PWD}
       - VITE_BUILD_CHANNEL=nightly
-      - VITE_APP_VERSION=1.0.0-nightly
+      - VITE_APP_VERSION=1.1.1-nightly
     volumes:
       - ./data/sounds:/data/sounds
       - ./data/uploads:/data/uploads

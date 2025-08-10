@@ -1,93 +1,59 @@
-# 🎵 Jukebox 420 - Discord Soundboard v1.0.0
+# Jukebox 420 – Discord Soundboard (v1.1.1)
 
-Ein modernes, feature-reiches Discord Soundboard mit Web-Frontend, Discord-Bot und Docker-Deployment. Perfekt für Gaming-Communities, Streamer und Discord-Server.
+A modern, self‑hosted Discord soundboard with a slick web UI and a Discord bot that plays sounds into your voice channels. Easy to run via Docker, fun to use with friends.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.1.1-blue)
 ![Docker](https://img.shields.io/badge/docker-ready-green)
 ![Discord](https://img.shields.io/badge/discord-bot-purple)
 
 ## ✨ Features
 
-### 🎮 **Kern-Funktionen**
-- **Web-Frontend** mit modernem UI und 3 Themes (Dark, Rainbow, 420)
-- **Discord-Bot** für Voice-Channel Integration
-- **Sound-Management** mit Ordner-Unterstützung
-- **Live-Uhrzeit** (Berlin Timezone)
-- **Volume Control** pro Server
-- **Favoriten-System** mit Cookie-Persistenz
+- Web UI (Vite + React + TypeScript), 3 themes (Dark, Rainbow, 420)
+- Discord bot (discord.js + @discordjs/voice)
+- MP3 & WAV playback, ffmpeg normalization
+- Favorites, search, folders view (auto counters)
+- Live counters and a clean header/footer
+- Admin area: bulk delete, inline rename, categories (CRUD) + bulk assign, remove custom badges
+- Partymode: server‑side random playback every 30–90 seconds, globally synced via SSE; Panic stops for everyone
+- Persistent state: volumes, plays, totalPlays, categories, badges in `/data/sounds/state.json`
 
-### 🎨 **UI/UX Features**
-- **3 Themes**: Dark, Rainbow, 420 (Cannabis/Trippy)
-- **Responsive Design** für Desktop & Mobile
-- **Glassmorphism-Effekte** mit Backdrop-Blur
-- **Animierte Hintergründe** (Rainbow & 420 Theme)
-- **Live-Zähler** für Sounds und Abspielungen
+## 🚀 Quick start
 
-### 🔧 **Admin-Funktionen**
-- **Admin-Login** (Passwort-basiert)
-- **Bulk-Delete** für mehrere Sounds
-- **Sound-Umbenennen** mit Inline-Editor
-- **Checkbox-Auswahl** für Massenoperationen
-
-### 🎵 **Audio-Features**
-- **MP3 & WAV Support** für Uploads und Playback
-- **Audio-Normalisierung** (Loudnorm)
-- **URL-Download** für MP3/WAV Links
-- **Random-Play** für zufällige Sounds
-- **Panic-Button** zum sofortigen Stoppen
-
-### 📁 **Organisation**
-- **Ordner-Unterstützung** mit Tab-Navigation
-- **Favoriten-Tab** für gespeicherte Sounds
-- **Neu-Tab** für die letzten 10 Uploads
-- **Most Played** für Top 3 Sounds
-- **Suchfunktion** für alle Sounds
-
-## 🚀 Quick Start
-
-### 1. Voraussetzungen
-- **Docker & Docker Compose**
-- **Discord Bot Token** mit folgenden Intents:
-  - `Guilds`
-  - `GuildVoiceStates` 
-  - `DirectMessages`
-  - `MessageContent`
+### 1. Requirements
+- Docker & Docker Compose
+- Discord bot token with intents: `Guilds`, `GuildVoiceStates`, `DirectMessages`
 
 ### 2. Setup
 ```bash
-# Repository klonen
+# Clone repository
 git clone https://github.com/flex420/jukebox-vibe.git
 cd jukebox-vibe
 
-# .env Datei erstellen
+# Create .env
 cp .env.example .env
 ```
 
-### 3. Konfiguration
+### 3. Configuration
 ```env
-# .env Datei bearbeiten
-DISCORD_TOKEN=dein_discord_bot_token_hier
+# Edit the .env file
+DISCORD_TOKEN=your_discord_bot_token_here
+ADMIN_PWD=choose-a-strong-password
 PORT=8080
 SOUNDS_DIR=/data/sounds
 
-# Optional: Bestimmte Server erlauben
+# Optionally restrict allowed guilds
 ALLOWED_GUILD_IDS=GUILD_ID_1,GUILD_ID_2
-
-# Optional: Audio-Normalisierung
-NORMALIZE_AUDIO=true
-NORMALIZE_TARGET=-14
-NORMALIZE_THRESHOLD=-70
 ```
 
 ### 4. Deployment
 ```bash
-# Container starten
+# Start container
 docker compose up --build -d
 
-# Logs anzeigen
+# Logs
 docker compose logs -f
 
-# Status prüfen
+# Status
 docker compose ps
 ```
 
@@ -203,6 +169,12 @@ docker pull flex420/jukebox-vibe:latest
 # Container starten
 docker run -d --name jukebox-420 -p 8199:8080 --env-file .env -v $(pwd)/data/sounds:/data/sounds flex420/jukebox-vibe:latest
 ```
+
+## 🔒 SSL/HTTPS Hinweis (wichtig für Discord)
+
+- Das Web-Frontend MUSS hinter HTTPS (SSL) ausgeliefert werden. Empfohlen ist ein Domain‑Mapping (Reverse Proxy) mit gültigem Zertifikat (z. B. Traefik, Nginx, Caddy, Cloudflare).
+- Hintergrund: Ohne TLS kann es zu Verschlüsselungs-/Encrypt‑Fehlern kommen, und Audio wird in Discord nicht korrekt wiedergegeben.
+- Praxis: Richte eine Domain wie `https://soundboard.deinedomain.tld` auf das Frontend ein und aktiviere SSL (Let’s Encrypt). Danach sollten Uploads/Playback stabil funktionieren.
 
 ## 📁 Projekt-Struktur
 
