@@ -170,6 +170,12 @@ docker pull flex420/jukebox-vibe:latest
 docker run -d --name jukebox-420 -p 8199:8080 --env-file .env -v $(pwd)/data/sounds:/data/sounds flex420/jukebox-vibe:latest
 ```
 
+## 🔒 SSL/HTTPS Hinweis (wichtig für Discord)
+
+- Das Web-Frontend MUSS hinter HTTPS (SSL) ausgeliefert werden. Empfohlen ist ein Domain‑Mapping (Reverse Proxy) mit gültigem Zertifikat (z. B. Traefik, Nginx, Caddy, Cloudflare).
+- Hintergrund: Ohne TLS kann es zu Verschlüsselungs-/Encrypt‑Fehlern kommen, und Audio wird in Discord nicht korrekt wiedergegeben.
+- Praxis: Richte eine Domain wie `https://soundboard.deinedomain.tld` auf das Frontend ein und aktiviere SSL (Let’s Encrypt). Danach sollten Uploads/Playback stabil funktionieren.
+
 ## 📁 Projekt-Struktur
 
 ```
