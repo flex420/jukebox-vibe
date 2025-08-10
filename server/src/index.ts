@@ -280,8 +280,8 @@ async function handleCommand(message: Message, content: string) {
       'Available commands\n' +
       '?help - zeigt diese Hilfe\n' +
       '?list - listet alle Audio-Dateien (mp3/wav)\n' +
-      '?entrance <datei.mp3|datei.wav> - setze deinen Entrance-Sound\n' +
-      '?exit <datei.mp3|datei.wav> - setze deinen Exit-Sound (optional)\n'
+      '?entrance <datei.mp3|datei.wav> | remove - setze oder entferne deinen Entrance-Sound\n' +
+      '?exit <datei.mp3|datei.wav> | remove - setze oder entferne deinen Exit-Sound\n'
     );
     return;
   }
@@ -293,8 +293,19 @@ async function handleCommand(message: Message, content: string) {
     return;
   }
   if (cmd === '?entrance') {
-    const [, fileName] = parts;
-    if (!fileName) { await reply('Verwendung: ?entrance <datei.mp3|datei.wav>'); return; }
+    const [, fileNameRaw] = parts;
+    const userId = message.author?.id ?? '';
+    if (!userId) { await reply('Kein Benutzer erkannt.'); return; }
+    const fileName = fileNameRaw?.trim();
+    if (!fileName) { await reply('Verwendung: ?entrance <datei.mp3|datei.wav> | remove'); return; }
+    if (/^(remove|clear|delete)$/i.test(fileName)) {
+      persistedState.entranceSounds = persistedState.entranceSounds ?? {};
+      delete persistedState.entranceSounds[userId];
+      writePersistedState(persistedState);
+      try { console.log(`${new Date().toISOString()} | Entrance removed: user=${userId} (${message.author?.tag || 'unknown'})`); } catch {}
+      await reply('Entrance-Sound entfernt.');
+      return;
+    }
     const lower = fileName.toLowerCase();
     if (!(lower.endsWith('.mp3') || lower.endsWith('.wav'))) { await reply('Nur .mp3 oder .wav Dateien sind erlaubt'); return; }
     const resolve = (() => {
@@ -306,7 +317,6 @@ async function handleCommand(message: Message, content: string) {
       } catch { return ''; }
     })();
     if (!resolve) { await reply('Datei nicht gefunden. Nutze ?list.'); return; }
-    const userId = message.author?.id ?? ''; if (!userId) { await reply('Kein Benutzer erkannt.'); return; }
     persistedState.entranceSounds = persistedState.entranceSounds ?? {};
     persistedState.entranceSounds[userId] = resolve;
     writePersistedState(persistedState);
@@ -316,8 +326,19 @@ async function handleCommand(message: Message, content: string) {
     await reply(`Entrance-Sound gesetzt: ${resolve}`); return;
   }
   if (cmd === '?exit') {
-    const [, fileName] = parts;
-    if (!fileName) { await reply('Verwendung: ?exit <datei.mp3|datei.wav>'); return; }
+    const [, fileNameRaw] = parts;
+    const userId = message.author?.id ?? '';
+    if (!userId) { await reply('Kein Benutzer erkannt.'); return; }
+    const fileName = fileNameRaw?.trim();
+    if (!fileName) { await reply('Verwendung: ?exit <datei.mp3|datei.wav> | remove'); return; }
+    if (/^(remove|clear|delete)$/i.test(fileName)) {
+      persistedState.exitSounds = persistedState.exitSounds ?? {};
+      delete persistedState.exitSounds[userId];
+      writePersistedState(persistedState);
+      try { console.log(`${new Date().toISOString()} | Exit removed: user=${userId} (${message.author?.tag || 'unknown'})`); } catch {}
+      await reply('Exit-Sound entfernt.');
+      return;
+    }
     const lower = fileName.toLowerCase();
     if (!(lower.endsWith('.mp3') || lower.endsWith('.wav'))) { await reply('Nur .mp3 oder .wav Dateien sind erlaubt'); return; }
     const resolve = (() => {
@@ -329,7 +350,6 @@ async function handleCommand(message: Message, content: string) {
       } catch { return ''; }
     })();
     if (!resolve) { await reply('Datei nicht gefunden. Nutze ?list.'); return; }
-    const userId = message.author?.id ?? ''; if (!userId) { await reply('Kein Benutzer erkannt.'); return; }
     persistedState.exitSounds = persistedState.exitSounds ?? {};
     persistedState.exitSounds[userId] = resolve;
     writePersistedState(persistedState);
