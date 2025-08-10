@@ -5,7 +5,7 @@ import express, { Request, Response } from 'express';
 // import multer from 'multer';
 import cors from 'cors';
 import crypto from 'node:crypto';
-import { Client, GatewayIntentBits, Partials, ChannelType, Events, type Message } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, ChannelType, Events, type Message, VoiceState } from 'discord.js';
 import {
   joinVoiceChannel,
   createAudioPlayer,
@@ -55,6 +55,8 @@ type Category = { id: string; name: string; color?: string; sort?: number };
   fileCategories?: Record<string, string[]>; // relPath or fileName -> categoryIds[]
   fileBadges?: Record<string, string[]>; // relPath or fileName -> custom badges (emoji/text)
     selectedChannels?: Record<string, string>; // guildId -> channelId (serverweite Auswahl)
+  entranceSounds?: Record<string, string>; // userId -> relativePath or fileName
+  exitSounds?: Record<string, string>; // userId -> relativePath or fileName
 };
 // Neuer, persistenter Speicherort direkt im Sounds-Volume
 const STATE_FILE_NEW = path.join(SOUNDS_DIR, 'state.json');
@@ -74,7 +76,9 @@ function readPersistedState(): PersistedState {
         categories: Array.isArray(parsed.categories) ? parsed.categories : [],
         fileCategories: parsed.fileCategories ?? {},
         fileBadges: parsed.fileBadges ?? {},
-        selectedChannels: parsed.selectedChannels ?? {}
+        selectedChannels: parsed.selectedChannels ?? {},
+        entranceSounds: parsed.entranceSounds ?? {},
+        exitSounds: parsed.exitSounds ?? {}
       } as PersistedState;
     }
     // 2) Fallback: alten Speicherort lesen und sofort nach NEW migrieren
@@ -88,7 +92,9 @@ function readPersistedState(): PersistedState {
         categories: Array.isArray(parsed.categories) ? parsed.categories : [],
         fileCategories: parsed.fileCategories ?? {},
         fileBadges: parsed.fileBadges ?? {},
-        selectedChannels: parsed.selectedChannels ?? {}
+        selectedChannels: parsed.selectedChannels ?? {},
+        entranceSounds: parsed.entranceSounds ?? {},
+        exitSounds: parsed.exitSounds ?? {}
       };
       try {
         fs.mkdirSync(path.dirname(STATE_FILE_NEW), { recursive: true });
@@ -137,10 +143,12 @@ console.log(generateDependencyReport());
 
 // --- Discord Client ---
 const client = new Client({
-  // 32385 = Guilds + GuildVoiceStates + GuildMessages + GuildMessageReactions + GuildMessageTyping
-  //        + DirectMessages + DirectMessageReactions + DirectMessageTyping
-  // (ohne privilegierte Intents wie MessageContent/GuildMembers/Presences)
-  intents: 32385,
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.MessageContent,
+  ],
   partials: [Partials.Channel]
 });
 
@@ -201,6 +209,44 @@ async function playFilePath(guildId: string, channelId: string, filePath: string
     state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
     attachVoiceLifecycle(state, guild);
   }
+  // Wenn der Bot in einer anderen ChannelId ist, sauber rüberwechseln
+  try {
+    const current = getVoiceConnection(guildId);
+    if (current && current.joinConfig?.channelId !== channelId) {
+      current.destroy();
+      const connection = joinVoiceChannel({
+        channelId,
+        guildId,
+        adapterCreator: guild.voiceAdapterCreator as any,
+        selfMute: false,
+        selfDeaf: false
+      });
+      // Reuse bestehenden Player falls vorhanden
+      const player = state.player ?? createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
+      connection.subscribe(player);
+      state = { connection, player, guildId, channelId, currentVolume: state.currentVolume ?? getPersistedVolume(guildId) };
+      guildAudioState.set(guildId, state);
+      state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
+      attachVoiceLifecycle(state, guild);
+    }
+  } catch {}
+
+  // Falls keine aktive Verbindung existiert (oder nach destroy), sicherstellen
+  if (!getVoiceConnection(guildId)) {
+    const connection = joinVoiceChannel({
+      channelId,
+      guildId,
+      adapterCreator: guild.voiceAdapterCreator as any,
+      selfMute: false,
+      selfDeaf: false
+    });
+    const player = state?.player ?? createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
+    connection.subscribe(player);
+    state = { connection, player, guildId, channelId, currentVolume: state?.currentVolume ?? getPersistedVolume(guildId) };
+    guildAudioState.set(guildId, state);
+    state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
+    attachVoiceLifecycle(state, guild);
+  }
   const useVolume = typeof volume === 'number' && Number.isFinite(volume)
     ? Math.max(0, Math.min(1, volume))
     : (state.currentVolume ?? 1);
@@ -234,7 +280,8 @@ async function handleCommand(message: Message, content: string) {
       'Available commands\n' +
       '?help - zeigt diese Hilfe\n' +
       '?list - listet alle Audio-Dateien (mp3/wav)\n' +
-      '?restart - startet den Container neu (Bestätigung erforderlich)\n'
+      '?entrance <datei.mp3|datei.wav> | remove - setze oder entferne deinen Entrance-Sound\n' +
+      '?exit <datei.mp3|datei.wav> | remove - setze oder entferne deinen Exit-Sound\n'
     );
     return;
   }
@@ -245,16 +292,71 @@ async function handleCommand(message: Message, content: string) {
     await reply(files.length ? files.join('\n') : 'Keine Dateien gefunden.');
     return;
   }
-  if (cmd === '?restart') {
-    const confirm = (parts[1] || '').toLowerCase();
-    if (confirm === 'y' || confirm === 'yes' || confirm === 'ja' || confirm === 'confirm') {
-      await reply('Neustart wird ausgeführt...');
-      try { await fetch('http://127.0.0.1:9001/_restart').catch(() => {}); } catch {}
-      setTimeout(() => process.exit(0), 500);
-    } else {
-      await reply('Bitte mit "?restart y" bestätigen.');
+  if (cmd === '?entrance') {
+    const [, fileNameRaw] = parts;
+    const userId = message.author?.id ?? '';
+    if (!userId) { await reply('Kein Benutzer erkannt.'); return; }
+    const fileName = fileNameRaw?.trim();
+    if (!fileName) { await reply('Verwendung: ?entrance <datei.mp3|datei.wav> | remove'); return; }
+    if (/^(remove|clear|delete)$/i.test(fileName)) {
+      persistedState.entranceSounds = persistedState.entranceSounds ?? {};
+      delete persistedState.entranceSounds[userId];
+      writePersistedState(persistedState);
+      try { console.log(`${new Date().toISOString()} | Entrance removed: user=${userId} (${message.author?.tag || 'unknown'})`); } catch {}
+      await reply('Entrance-Sound entfernt.');
+      return;
     }
-    return;
+    const lower = fileName.toLowerCase();
+    if (!(lower.endsWith('.mp3') || lower.endsWith('.wav'))) { await reply('Nur .mp3 oder .wav Dateien sind erlaubt'); return; }
+    const resolve = (() => {
+      try {
+        const direct = path.join(SOUNDS_DIR, fileName); if (fs.existsSync(direct)) return fileName;
+        const dirs = fs.readdirSync(SOUNDS_DIR, { withFileTypes: true });
+        for (const d of dirs) { if (!d.isDirectory()) continue; const cand = path.join(SOUNDS_DIR, d.name, fileName); if (fs.existsSync(cand)) return path.join(d.name, fileName).replace(/\\/g, '/'); }
+        return '';
+      } catch { return ''; }
+    })();
+    if (!resolve) { await reply('Datei nicht gefunden. Nutze ?list.'); return; }
+    persistedState.entranceSounds = persistedState.entranceSounds ?? {};
+    persistedState.entranceSounds[userId] = resolve;
+    writePersistedState(persistedState);
+    try {
+      console.log(`${new Date().toISOString()} | Entrance set: user=${userId} (${message.author?.tag || 'unknown'}) file=${resolve}`);
+    } catch {}
+    await reply(`Entrance-Sound gesetzt: ${resolve}`); return;
+  }
+  if (cmd === '?exit') {
+    const [, fileNameRaw] = parts;
+    const userId = message.author?.id ?? '';
+    if (!userId) { await reply('Kein Benutzer erkannt.'); return; }
+    const fileName = fileNameRaw?.trim();
+    if (!fileName) { await reply('Verwendung: ?exit <datei.mp3|datei.wav> | remove'); return; }
+    if (/^(remove|clear|delete)$/i.test(fileName)) {
+      persistedState.exitSounds = persistedState.exitSounds ?? {};
+      delete persistedState.exitSounds[userId];
+      writePersistedState(persistedState);
+      try { console.log(`${new Date().toISOString()} | Exit removed: user=${userId} (${message.author?.tag || 'unknown'})`); } catch {}
+      await reply('Exit-Sound entfernt.');
+      return;
+    }
+    const lower = fileName.toLowerCase();
+    if (!(lower.endsWith('.mp3') || lower.endsWith('.wav'))) { await reply('Nur .mp3 oder .wav Dateien sind erlaubt'); return; }
+    const resolve = (() => {
+      try {
+        const direct = path.join(SOUNDS_DIR, fileName); if (fs.existsSync(direct)) return fileName;
+        const dirs = fs.readdirSync(SOUNDS_DIR, { withFileTypes: true });
+        for (const d of dirs) { if (!d.isDirectory()) continue; const cand = path.join(SOUNDS_DIR, d.name, fileName); if (fs.existsSync(cand)) return path.join(d.name, fileName).replace(/\\/g, '/'); }
+        return '';
+      } catch { return ''; }
+    })();
+    if (!resolve) { await reply('Datei nicht gefunden. Nutze ?list.'); return; }
+    persistedState.exitSounds = persistedState.exitSounds ?? {};
+    persistedState.exitSounds[userId] = resolve;
+    writePersistedState(persistedState);
+    try {
+      console.log(`${new Date().toISOString()} | Exit set: user=${userId} (${message.author?.tag || 'unknown'}) file=${resolve}`);
+    } catch {}
+    await reply(`Exit-Sound gesetzt: ${resolve}`); return;
   }
   await reply('Unbekannter Command. Nutze ?help.');
 }
@@ -295,6 +397,9 @@ async function ensureConnectionReady(connection: VoiceConnection, channelId: str
 
 function attachVoiceLifecycle(state: GuildAudioState, guild: any) {
   const { connection } = state;
+  // Mehrfach-Registrierung verhindern
+  if ((connection as any).__lifecycleAttached) return;
+  try { (connection as any).setMaxListeners?.(0); } catch {}
   connection.on('stateChange', async (oldS: any, newS: any) => {
     console.log(`${new Date().toISOString()} | VoiceConnection: ${oldS.status} -> ${newS.status}`);
     try {
@@ -332,16 +437,72 @@ function attachVoiceLifecycle(state: GuildAudioState, guild: any) {
       console.error(`${new Date().toISOString()} | Voice lifecycle handler error`, e);
     }
   });
+  (connection as any).__lifecycleAttached = true;
 }
 
 client.once(Events.ClientReady, () => {
   console.log(`Bot eingeloggt als ${client.user?.tag}`);
 });
 
+// Voice State Updates: Entrance/Exit
+client.on(Events.VoiceStateUpdate, async (oldState: VoiceState, newState: VoiceState) => {
+  try {
+    const userId = (newState.id || oldState.id) as string;
+    if (!userId) return;
+    // Eigene Events ignorieren
+    if (userId === client.user?.id) return;
+    const guildId = (newState.guild?.id || oldState.guild?.id) as string;
+    if (!guildId) return;
+
+    const before = oldState.channelId;
+    const after = newState.channelId;
+    console.log(`${new Date().toISOString()} | VoiceStateUpdate user=${userId} before=${before ?? '-'} after=${after ?? '-'}`);
+
+    // Entrance: Nutzer betritt einen Channel (erstmaliger Join oder Wechsel)
+    if (after && before !== after) {
+      console.log(`${new Date().toISOString()} | Entrance condition met for user=${userId} before=${before ?? '-'} after=${after}`);
+      const mapping = persistedState.entranceSounds ?? {};
+      const file = mapping[userId];
+      if (file) {
+        const rel = file.replace(/\\/g, '/');
+        const abs = path.join(SOUNDS_DIR, rel);
+        if (fs.existsSync(abs)) {
+          try {
+            // Dem Channel beitreten und Sound spielen
+            await playFilePath(guildId, after, abs, undefined, rel);
+            console.log(`${new Date().toISOString()} | Entrance played for ${userId}: ${rel}`);
+          } catch (e) { console.warn('Entrance play error', e); }
+        }
+      }
+    }
+    // Exit: Nur wenn Nutzer wirklich auflegt (after ist leer). Bei Wechsel KEIN Exit-Sound.
+    if (before && !after) {
+      console.log(`${new Date().toISOString()} | Exit condition met (disconnect) for user=${userId} before=${before}`);
+      const mapping = persistedState.exitSounds ?? {};
+      const file = mapping[userId];
+      if (file) {
+        const rel = file.replace(/\\/g, '/');
+        const abs = path.join(SOUNDS_DIR, rel);
+        if (fs.existsSync(abs)) {
+          try {
+            await playFilePath(guildId, before, abs, undefined, rel);
+            console.log(`${new Date().toISOString()} | Exit played for ${userId}: ${rel}`);
+          } catch (e) { console.warn('Exit play error', e); }
+        }
+      }
+    } else if (before && after && before !== after) {
+      // Kanalwechsel: Exit-Sound unterdrücken
+      console.log(`${new Date().toISOString()} | Exit suppressed (move) for user=${userId} before=${before} after=${after}`);
+    }
+  } catch (e) {
+    console.warn('VoiceStateUpdate entrance/exit handling error', e);
+  }
+});
+
 client.on(Events.MessageCreate, async (message: Message) => {
   try {
     if (message.author?.bot) return;
-    // Commands überall annehmen
+    // Commands überall annehmen (inkl. DMs)
     const content = (message.content || '').trim();
     if (content.startsWith('?')) {
       await handleCommand(message, content);
