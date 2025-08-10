@@ -345,7 +345,7 @@ export default function App() {
         <header className="flex items-center justify-between p-6">
           <div className="flex items-center">
             <div>
-               <h1 className="text-4xl font-bold">
+               <h1 className="text-4xl font-bold site-title">
                   Jukebox 420
                    {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
                    <div className="text-sm font-normal mt-1 opacity-70">

@@ -362,6 +362,20 @@ header h1 {
   color: inherit;
 }
 
+/* Titel-Effekte pro Theme */
+[data-theme="rainbow"] .site-title {
+  background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #80ff00, #00ff00, #00ff80, #00ffff, #0080ff, #0000ff, #8000ff, #ff00ff, #ff0080);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-size: 400% 400%;
+  animation: chaos-rainbow-animation 2s ease-in-out infinite;
+}
+
+[data-theme="420"] .site-title {
+  color: #22C55E;
+}
+
 /* Nightly Badge Farbe (Fallback) */
 .nightly-badge { color: #ff4d4f; }
 
