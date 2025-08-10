@@ -47,6 +47,19 @@ export default function App() {
     return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codePoints}.svg`;
   }
   const [showBroccoli, setShowBroccoli] = useState<boolean>(false);
+  const broccoliItems = useMemo(() => {
+    if (!(theme === '420' && showBroccoli)) return [] as Array<{top:number; left:number; duration:number; delay:number}>;
+    const items: Array<{top:number; left:number; duration:number; delay:number}> = [];
+    for (let i = 0; i < 20; i += 1) {
+      items.push({
+        top: 5 + Math.random() * 90,      // 5%..95%
+        left: 2 + Math.random() * 96,     // 2%..98%
+        duration: 14 + Math.random() * 14, // 14s..28s
+        delay: Math.random() * 2          // 0..2s
+      });
+    }
+    return items;
+  }, [theme, showBroccoli]);
   const [partyActiveGuilds, setPartyActiveGuilds] = useState<string[]>([]);
   const selectedCount = useMemo(() => Object.values(selectedSet).filter(Boolean).length, [selectedSet]);
   const [clock, setClock] = useState<string>(() => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }).format(new Date()));
@@ -334,12 +347,15 @@ export default function App() {
         {/* Floating Broccoli for 420 Theme */}
         {theme === '420' && showBroccoli && (
           <>
-            <div className="broccoli">🥦</div>
-            <div className="broccoli">🥦</div>
-            <div className="broccoli">🥦</div>
-            <div className="broccoli">🥦</div>
-            <div className="broccoli">🥦</div>
-            <div className="broccoli">🥦</div>
+            {broccoliItems.map((b, idx) => (
+              <div
+                key={idx}
+                className="broccoli"
+                style={{ top: `${b.top}%`, left: `${b.left}%`, animationDuration: `${b.duration}s`, animationDelay: `${b.delay}s` }}
+              >
+                🥦
+              </div>
+            ))}
           </>
         )}
         <header className="flex items-center justify-between p-6">
