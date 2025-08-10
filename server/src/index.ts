@@ -240,8 +240,8 @@ async function handleCommand(message: Message, content: string) {
       'Available commands\n' +
       '?help - zeigt diese Hilfe\n' +
       '?list - listet alle Audio-Dateien (mp3/wav)\n' +
-      '?entrance <name> <datei.mp3|datei.wav> - setze deinen Entrance-Sound\n' +
-      '?exit <name> <datei.mp3|datei.wav> - setze deinen Exit-Sound (optional)\n'
+      '?entrance <datei.mp3|datei.wav> - setze deinen Entrance-Sound\n' +
+      '?exit <datei.mp3|datei.wav> - setze deinen Exit-Sound (optional)\n'
     );
     return;
   }
@@ -253,8 +253,8 @@ async function handleCommand(message: Message, content: string) {
     return;
   }
   if (cmd === '?entrance') {
-    const [, userName, fileName] = parts;
-    if (!userName || !fileName) { await reply('Verwendung: ?entrance <name> <datei.mp3|datei.wav>'); return; }
+    const [, fileName] = parts;
+    if (!fileName) { await reply('Verwendung: ?entrance <datei.mp3|datei.wav>'); return; }
     const lower = fileName.toLowerCase();
     if (!(lower.endsWith('.mp3') || lower.endsWith('.wav'))) { await reply('Nur .mp3 oder .wav Dateien sind erlaubt'); return; }
     const resolve = (() => {
@@ -271,8 +271,8 @@ async function handleCommand(message: Message, content: string) {
     await reply(`Entrance-Sound gesetzt: ${resolve}`); return;
   }
   if (cmd === '?exit') {
-    const [, userName, fileName] = parts;
-    if (!userName || !fileName) { await reply('Verwendung: ?exit <name> <datei.mp3|datei.wav>'); return; }
+    const [, fileName] = parts;
+    if (!fileName) { await reply('Verwendung: ?exit <datei.mp3|datei.wav>'); return; }
     const lower = fileName.toLowerCase();
     if (!(lower.endsWith('.mp3') || lower.endsWith('.wav'))) { await reply('Nur .mp3 oder .wav Dateien sind erlaubt'); return; }
     const resolve = (() => {
@@ -381,30 +381,32 @@ client.on(Events.VoiceStateUpdate, async (oldState: VoiceState, newState: VoiceS
     const before = oldState.channelId;
     const after = newState.channelId;
 
-    // Bot muss bereits im Ziel-Channel sein, sonst nichts tun
-    const connection = getVoiceConnection(guildId);
-    const botChannelId = connection?.joinConfig?.channelId;
-
-    if (!before && after && botChannelId && botChannelId === after) {
-      // User joined bot channel → Entrance
+    // Entrance: Nutzer joint einem Channel
+    if (!before && after) {
       const mapping = persistedState.entranceSounds ?? {};
       const file = mapping[userId];
       if (file) {
         const rel = file.replace(/\\/g, '/');
         const abs = path.join(SOUNDS_DIR, rel);
         if (fs.existsSync(abs)) {
-          await playFilePath(guildId, after, abs, undefined, rel);
+          try {
+            // Dem Channel beitreten und Sound spielen
+            await playFilePath(guildId, after, abs, undefined, rel);
+          } catch (e) { console.warn('Entrance play error', e); }
         }
       }
-    } else if (before && !after && botChannelId && botChannelId === before) {
-      // User left bot channel → Exit
+    }
+    // Exit: Nutzer verlässt einen Channel – spiele im vorherigen Channel
+    if (before && !after) {
       const mapping = persistedState.exitSounds ?? {};
       const file = mapping[userId];
       if (file) {
         const rel = file.replace(/\\/g, '/');
         const abs = path.join(SOUNDS_DIR, rel);
         if (fs.existsSync(abs)) {
-          await playFilePath(guildId, before, abs, undefined, rel);
+          try {
+            await playFilePath(guildId, before, abs, undefined, rel);
+          } catch (e) { console.warn('Exit play error', e); }
         }
       }
     }
