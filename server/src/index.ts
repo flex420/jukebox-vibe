@@ -5,7 +5,7 @@ import express, { Request, Response } from 'express';
 // import multer from 'multer';
 import cors from 'cors';
 import crypto from 'node:crypto';
-import { Client, GatewayIntentBits, Partials, ChannelType, Events, type Message } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, ChannelType, Events, type Message, VoiceState } from 'discord.js';
 import {
   joinVoiceChannel,
   createAudioPlayer,
@@ -55,6 +55,8 @@ type Category = { id: string; name: string; color?: string; sort?: number };
   fileCategories?: Record<string, string[]>; // relPath or fileName -> categoryIds[]
   fileBadges?: Record<string, string[]>; // relPath or fileName -> custom badges (emoji/text)
     selectedChannels?: Record<string, string>; // guildId -> channelId (serverweite Auswahl)
+  entranceSounds?: Record<string, string>; // userId -> relativePath or fileName
+  exitSounds?: Record<string, string>; // userId -> relativePath or fileName
 };
 // Neuer, persistenter Speicherort direkt im Sounds-Volume
 const STATE_FILE_NEW = path.join(SOUNDS_DIR, 'state.json');
@@ -74,7 +76,9 @@ function readPersistedState(): PersistedState {
         categories: Array.isArray(parsed.categories) ? parsed.categories : [],
         fileCategories: parsed.fileCategories ?? {},
         fileBadges: parsed.fileBadges ?? {},
-        selectedChannels: parsed.selectedChannels ?? {}
+        selectedChannels: parsed.selectedChannels ?? {},
+        entranceSounds: parsed.entranceSounds ?? {},
+        exitSounds: parsed.exitSounds ?? {}
       } as PersistedState;
     }
     // 2) Fallback: alten Speicherort lesen und sofort nach NEW migrieren
@@ -88,7 +92,9 @@ function readPersistedState(): PersistedState {
         categories: Array.isArray(parsed.categories) ? parsed.categories : [],
         fileCategories: parsed.fileCategories ?? {},
         fileBadges: parsed.fileBadges ?? {},
-        selectedChannels: parsed.selectedChannels ?? {}
+        selectedChannels: parsed.selectedChannels ?? {},
+        entranceSounds: parsed.entranceSounds ?? {},
+        exitSounds: parsed.exitSounds ?? {}
       };
       try {
         fs.mkdirSync(path.dirname(STATE_FILE_NEW), { recursive: true });
@@ -234,7 +240,8 @@ async function handleCommand(message: Message, content: string) {
       'Available commands\n' +
       '?help - zeigt diese Hilfe\n' +
       '?list - listet alle Audio-Dateien (mp3/wav)\n' +
-      '?restart - startet den Container neu (Bestätigung erforderlich)\n'
+      '?entrance <name> <datei.mp3|datei.wav> - setze deinen Entrance-Sound\n' +
+      '?exit <name> <datei.mp3|datei.wav> - setze deinen Exit-Sound (optional)\n'
     );
     return;
   }
@@ -245,16 +252,41 @@ async function handleCommand(message: Message, content: string) {
     await reply(files.length ? files.join('\n') : 'Keine Dateien gefunden.');
     return;
   }
-  if (cmd === '?restart') {
-    const confirm = (parts[1] || '').toLowerCase();
-    if (confirm === 'y' || confirm === 'yes' || confirm === 'ja' || confirm === 'confirm') {
-      await reply('Neustart wird ausgeführt...');
-      try { await fetch('http://127.0.0.1:9001/_restart').catch(() => {}); } catch {}
-      setTimeout(() => process.exit(0), 500);
-    } else {
-      await reply('Bitte mit "?restart y" bestätigen.');
-    }
-    return;
+  if (cmd === '?entrance') {
+    const [, userName, fileName] = parts;
+    if (!userName || !fileName) { await reply('Verwendung: ?entrance <name> <datei.mp3|datei.wav>'); return; }
+    const lower = fileName.toLowerCase();
+    if (!(lower.endsWith('.mp3') || lower.endsWith('.wav'))) { await reply('Nur .mp3 oder .wav Dateien sind erlaubt'); return; }
+    const resolve = (() => {
+      try {
+        const direct = path.join(SOUNDS_DIR, fileName); if (fs.existsSync(direct)) return fileName;
+        const dirs = fs.readdirSync(SOUNDS_DIR, { withFileTypes: true });
+        for (const d of dirs) { if (!d.isDirectory()) continue; const cand = path.join(SOUNDS_DIR, d.name, fileName); if (fs.existsSync(cand)) return path.join(d.name, fileName).replace(/\\/g, '/'); }
+        return '';
+      } catch { return ''; }
+    })();
+    if (!resolve) { await reply('Datei nicht gefunden. Nutze ?list.'); return; }
+    const userId = message.author?.id ?? ''; if (!userId) { await reply('Kein Benutzer erkannt.'); return; }
+    persistedState.entranceSounds = persistedState.entranceSounds ?? {}; persistedState.entranceSounds[userId] = resolve; writePersistedState(persistedState);
+    await reply(`Entrance-Sound gesetzt: ${resolve}`); return;
+  }
+  if (cmd === '?exit') {
+    const [, userName, fileName] = parts;
+    if (!userName || !fileName) { await reply('Verwendung: ?exit <name> <datei.mp3|datei.wav>'); return; }
+    const lower = fileName.toLowerCase();
+    if (!(lower.endsWith('.mp3') || lower.endsWith('.wav'))) { await reply('Nur .mp3 oder .wav Dateien sind erlaubt'); return; }
+    const resolve = (() => {
+      try {
+        const direct = path.join(SOUNDS_DIR, fileName); if (fs.existsSync(direct)) return fileName;
+        const dirs = fs.readdirSync(SOUNDS_DIR, { withFileTypes: true });
+        for (const d of dirs) { if (!d.isDirectory()) continue; const cand = path.join(SOUNDS_DIR, d.name, fileName); if (fs.existsSync(cand)) return path.join(d.name, fileName).replace(/\\/g, '/'); }
+        return '';
+      } catch { return ''; }
+    })();
+    if (!resolve) { await reply('Datei nicht gefunden. Nutze ?list.'); return; }
+    const userId = message.author?.id ?? ''; if (!userId) { await reply('Kein Benutzer erkannt.'); return; }
+    persistedState.exitSounds = persistedState.exitSounds ?? {}; persistedState.exitSounds[userId] = resolve; writePersistedState(persistedState);
+    await reply(`Exit-Sound gesetzt: ${resolve}`); return;
   }
   await reply('Unbekannter Command. Nutze ?help.');
 }
@@ -336,6 +368,49 @@ function attachVoiceLifecycle(state: GuildAudioState, guild: any) {
 
 client.once(Events.ClientReady, () => {
   console.log(`Bot eingeloggt als ${client.user?.tag}`);
+});
+
+// Voice State Updates: Entrance/Exit
+client.on(Events.VoiceStateUpdate, async (oldState: VoiceState, newState: VoiceState) => {
+  try {
+    const userId = newState.member?.user?.id || oldState.member?.user?.id;
+    if (!userId) return;
+    const guildId = (newState.guild?.id || oldState.guild?.id) as string;
+    if (!guildId) return;
+
+    const before = oldState.channelId;
+    const after = newState.channelId;
+
+    // Bot muss bereits im Ziel-Channel sein, sonst nichts tun
+    const connection = getVoiceConnection(guildId);
+    const botChannelId = connection?.joinConfig?.channelId;
+
+    if (!before && after && botChannelId && botChannelId === after) {
+      // User joined bot channel → Entrance
+      const mapping = persistedState.entranceSounds ?? {};
+      const file = mapping[userId];
+      if (file) {
+        const rel = file.replace(/\\/g, '/');
+        const abs = path.join(SOUNDS_DIR, rel);
+        if (fs.existsSync(abs)) {
+          await playFilePath(guildId, after, abs, undefined, rel);
+        }
+      }
+    } else if (before && !after && botChannelId && botChannelId === before) {
+      // User left bot channel → Exit
+      const mapping = persistedState.exitSounds ?? {};
+      const file = mapping[userId];
+      if (file) {
+        const rel = file.replace(/\\/g, '/');
+        const abs = path.join(SOUNDS_DIR, rel);
+        if (fs.existsSync(abs)) {
+          await playFilePath(guildId, before, abs, undefined, rel);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('VoiceStateUpdate entrance/exit handling error', e);
+  }
 });
 
 client.on(Events.MessageCreate, async (message: Message) => {
