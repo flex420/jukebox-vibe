@@ -53,8 +53,6 @@ export default function App() {
   const [totalPlays, setTotalPlays] = useState<number>(0);
   const [mediaUrl, setMediaUrl] = useState<string>('');
   const [chaosMode, setChaosMode] = useState<boolean>(false);
-  const [serverVersion, setServerVersion] = useState<string>('');
-  const [serverBuild, setServerBuild] = useState<string>('');
   const chaosTimeoutRef = useRef<number | null>(null);
   const chaosModeRef = useRef<boolean>(false);
   useEffect(() => { chaosModeRef.current = chaosMode; }, [chaosMode]);
@@ -83,11 +81,7 @@ export default function App() {
       try { const cats = await fetchCategories(); setCategories(cats.categories || []); } catch {}
       try {
         const h = await fetch('/api/health').then(r => r.json()).catch(() => null);
-        if (h) {
-          if (typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
-          if (typeof h.version === 'string') setServerVersion(h.version);
-          if (typeof h.build === 'string') setServerBuild(h.build);
-        }
+        if (h && typeof h.totalPlays === 'number') setTotalPlays(h.totalPlays);
       } catch {}
     })();
   }, []);
@@ -334,9 +328,8 @@ export default function App() {
             <div>
                <h1 className="text-4xl font-bold">
                  Jukebox 420
-                 {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
+                  {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
                    <div className="text-sm font-normal mt-1 opacity-70">
-                     v{serverVersion || import.meta.env.VITE_APP_VERSION || ''}
                      <span className="ml-2" style={{ color: '#ff4d4f' }}>• Nightly</span>
                    </div>
                  )}
