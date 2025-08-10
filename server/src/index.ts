@@ -143,10 +143,12 @@ console.log(generateDependencyReport());
 
 // --- Discord Client ---
 const client = new Client({
-  // 32385 = Guilds + GuildVoiceStates + GuildMessages + GuildMessageReactions + GuildMessageTyping
-  //        + DirectMessages + DirectMessageReactions + DirectMessageTyping
-  // (ohne privilegierte Intents wie MessageContent/GuildMembers/Presences)
-  intents: 32385,
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.MessageContent,
+  ],
   partials: [Partials.Channel]
 });
 
@@ -418,7 +420,7 @@ client.on(Events.VoiceStateUpdate, async (oldState: VoiceState, newState: VoiceS
 client.on(Events.MessageCreate, async (message: Message) => {
   try {
     if (message.author?.bot) return;
-    // Commands überall annehmen
+    // Commands überall annehmen (inkl. DMs)
     const content = (message.content || '').trim();
     if (content.startsWith('?')) {
       await handleCommand(message, content);
