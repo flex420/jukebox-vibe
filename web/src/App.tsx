@@ -672,15 +672,7 @@ export default function App() {
             );
           })}
         </main>
-        {/* Footer: Version/Channel */}
-        <footer className="footer-info">
-          <span>
-            v{import.meta.env.VITE_APP_VERSION || ''}
-            {import.meta.env.VITE_BUILD_CHANNEL === 'nightly' && (
-              <span className="ml-2">• Nightly</span>
-            )}
-          </span>
-        </footer>
+        {/* Footer intentionally left without version display */}
       </div>
       {showTop && (
         <button type="button" className="back-to-top" aria-label="Nach oben" onClick={()=>window.scrollTo({top:0, behavior:'smooth'})}>↑ Top</button>
