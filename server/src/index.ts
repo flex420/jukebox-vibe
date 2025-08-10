@@ -221,6 +221,7 @@ async function playFilePath(guildId: string, channelId: string, filePath: string
         selfMute: false,
         selfDeaf: false
       });
+      // Reuse bestehenden Player falls vorhanden
       const player = state.player ?? createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
       connection.subscribe(player);
       state = { connection, player, guildId, channelId, currentVolume: state.currentVolume ?? getPersistedVolume(guildId) };
@@ -229,6 +230,23 @@ async function playFilePath(guildId: string, channelId: string, filePath: string
       attachVoiceLifecycle(state, guild);
     }
   } catch {}
+
+  // Falls keine aktive Verbindung existiert (oder nach destroy), sicherstellen
+  if (!getVoiceConnection(guildId)) {
+    const connection = joinVoiceChannel({
+      channelId,
+      guildId,
+      adapterCreator: guild.voiceAdapterCreator as any,
+      selfMute: false,
+      selfDeaf: false
+    });
+    const player = state?.player ?? createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
+    connection.subscribe(player);
+    state = { connection, player, guildId, channelId, currentVolume: state?.currentVolume ?? getPersistedVolume(guildId) };
+    guildAudioState.set(guildId, state);
+    state.connection = await ensureConnectionReady(connection, channelId, guildId, guild);
+    attachVoiceLifecycle(state, guild);
+  }
   const useVolume = typeof volume === 'number' && Number.isFinite(volume)
     ? Math.max(0, Math.min(1, volume))
     : (state.currentVolume ?? 1);
@@ -416,8 +434,9 @@ client.on(Events.VoiceStateUpdate, async (oldState: VoiceState, newState: VoiceS
     const after = newState.channelId;
     console.log(`${new Date().toISOString()} | VoiceStateUpdate user=${userId} before=${before ?? '-'} after=${after ?? '-'}`);
 
-    // Entrance: Nutzer joint einem Channel
-    if (!before && after) {
+    // Entrance: Nutzer betritt einen Channel (erstmaliger Join oder Wechsel)
+    if (after && before !== after) {
+      console.log(`${new Date().toISOString()} | Entrance condition met for user=${userId} before=${before ?? '-'} after=${after}`);
       const mapping = persistedState.entranceSounds ?? {};
       const file = mapping[userId];
       if (file) {
@@ -432,8 +451,9 @@ client.on(Events.VoiceStateUpdate, async (oldState: VoiceState, newState: VoiceS
         }
       }
     }
-    // Exit: Nutzer verlässt einen Channel – spiele im vorherigen Channel
-    if (before && !after) {
+    // Exit: Nutzer verlässt einen Channel (vollständig oder wechselt zu anderem)
+    if (before && (!after || after !== before)) {
+      console.log(`${new Date().toISOString()} | Exit condition met for user=${userId} before=${before} after=${after ?? '-'}`);
       const mapping = persistedState.exitSounds ?? {};
       const file = mapping[userId];
       if (file) {
