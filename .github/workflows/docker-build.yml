@@ -2,7 +2,7 @@
 
 on:
   push:
-    branches: [ "main", "feature/*" ]
+    branches: [ "main", "feature/*", "nightly" ]
   workflow_dispatch:
 
 env:
@@ -31,12 +31,16 @@ jobs:
             echo "tag=main" >> $GITHUB_OUTPUT
             echo "version=1.1.0" >> $GITHUB_OUTPUT
             echo "channel=stable" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref_name }}" == "nightly" ]]; then
+            echo "tag=nightly" >> $GITHUB_OUTPUT
+            echo "version=1.1.0-nightly" >> $GITHUB_OUTPUT
+            echo "channel=nightly" >> $GITHUB_OUTPUT
           else
             # Ersetze Slashes durch Bindestriche für gültige Docker Tags
             CLEAN_TAG=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
             echo "tag=$CLEAN_TAG" >> $GITHUB_OUTPUT
-            echo "version=1.1.0-nightly" >> $GITHUB_OUTPUT
-            echo "channel=nightly" >> $GITHUB_OUTPUT
+            echo "version=1.1.0-dev" >> $GITHUB_OUTPUT
+            echo "channel=dev" >> $GITHUB_OUTPUT
           fi
 
       # Nur auf main: auch :latest tag pushen
