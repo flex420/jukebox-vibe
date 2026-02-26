@@ -21,8 +21,8 @@ COPY server/package*.json ./
 RUN npm install --no-audit --no-fund
 COPY server/ .
 RUN npm run build
-# Nur Prod-Dependencies für Runtime behalten
-RUN npm prune --omit=dev
+# Nur Prod-Dependencies für Runtime behalten. rm -rf and cleanly install to prevent npm prune bugs
+RUN rm -rf node_modules && npm install --omit=dev --no-audit --no-fund
 
 # --- Runtime image ---
 FROM node:20-slim AS runtime
